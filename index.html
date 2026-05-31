@@ -5769,7 +5769,12 @@ body.splash-active{overflow:hidden;}
 </head>
 <body>
 <canvas id="particles-bg" aria-hidden="true"></canvas>
-<style>#particles-bg{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;}html,body{background:linear-gradient(135deg,#eef4fb 0%,#e3ecf6 100%) !important;}</style>
+<style>
+html{background:linear-gradient(135deg,#0a1929 0%,#0f2942 50%,#0a1929 100%) !important;}
+body{background:transparent !important;}
+#particles-bg{position:fixed !important;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;display:block;}
+body > *:not(#particles-bg){position:relative;z-index:1;}
+</style>
 
 <!-- ===== AUTH: Styles ===== -->
 <style id="ymco-auth-styles">
@@ -10312,7 +10317,7 @@ window.YMCO_showSplash = function(){
               '#clinicModal .modal-header{display:none !important;}' +
               /* --- Cover band --- */
               '.clinic-print-cover{font-family:Inter,-apple-system,sans-serif;color:#0f172a;margin:0 0 14px 0;page-break-inside:avoid;break-inside:avoid;}' +
-              '.clinic-print-cover .cpc-band{position:relative;background:linear-gradient(135deg,#0f4c75 0%,#1d6fa5 45%,#00b4d8 100%);color:#fff;border-radius:16px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:18px;box-shadow:0 10px 28px -10px rgba(15,76,117,0.55);overflow:hidden;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}' +
+              '.clinic-print-cover .cpc-band{position:relative;background:linear-gradient(135deg,#0f4c75 0%,#1d6fa5 45%,#00b4d8 100%);color:#fff;border-radius:16px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:18px;box-shadow:0 10px 28px -10px rgba(0,210,255,0.85);overflow:hidden;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}' +
               '.clinic-print-cover .cpc-band::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 100% 0%,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0) 60%);pointer-events:none;}' +
               '.clinic-print-cover .cpc-brand{display:flex;align-items:center;gap:14px;}' +
               '.clinic-print-cover .cpc-brand-mark{width:54px;height:54px;border-radius:14px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;backdrop-filter:blur(4px);}' +
@@ -17898,7 +17903,7 @@ window.toggleInjuryPrintPreview = function(){
       if(p.y<0||p.y>H) p.vy*=-1;
       ctx.beginPath();
       ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle = 'rgba(15,76,117,0.55)';
+      ctx.fillStyle = 'rgba(0,210,255,0.85)';
       ctx.fill();
     }
     for(var i=0;i<particles.length;i++){
@@ -17908,7 +17913,7 @@ window.toggleInjuryPrintPreview = function(){
         var d=Math.sqrt(dx*dx+dy*dy);
         if(d<MAX_D){
           var alpha = (1 - d/MAX_D)*0.35;
-          ctx.strokeStyle='rgba(0,180,216,'+alpha+')';
+          ctx.strokeStyle='rgba(120,220,255,'+alpha+')';
           ctx.lineWidth=1;
           ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
         }
@@ -17918,7 +17923,7 @@ window.toggleInjuryPrintPreview = function(){
       var dm=Math.sqrt(dxm*dxm+dym*dym);
       if(dm<MAX_D_MOUSE){
         var alpha=(1-dm/MAX_D_MOUSE)*0.55;
-        ctx.strokeStyle='rgba(0,180,216,'+alpha+')';
+        ctx.strokeStyle='rgba(120,220,255,'+alpha+')';
         ctx.lineWidth=1.2;
         ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(mouse.x,mouse.y); ctx.stroke();
       }
