@@ -681,20 +681,56 @@
             pointer-events: none;
         }
         .worker-avatar {
-            width: 56px;
-            height: 56px;
+            width: 62px;
+            height: 62px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
-            font-size: 1.3em;
-            color: white;
+            font-size: 1.7em;
+            color: #fff;
             flex-shrink: 0;
-            background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(8px);
-            border: 2px solid rgba(255,255,255,0.3);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: relative;
+            background:
+                radial-gradient(circle at 30% 25%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.35) 18%, transparent 45%),
+                radial-gradient(circle at 70% 80%, rgba(0,0,0,0.35) 0%, transparent 55%),
+                linear-gradient(145deg, var(--avatar-c1, #3282b8) 0%, var(--avatar-c2, #0f4c75) 100%);
+            border: 1.5px solid rgba(255,255,255,0.45);
+            box-shadow:
+                inset 0 -6px 12px rgba(0,0,0,0.28),
+                inset 0 4px 8px rgba(255,255,255,0.35),
+                0 8px 18px rgba(15,23,42,0.28),
+                0 2px 4px rgba(15,23,42,0.18);
+            transform: translateZ(0);
+            transition: transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease;
+        }
+        .worker-avatar::after {
+            content: "";
+            position: absolute;
+            inset: 4px 4px 50% 4px;
+            border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0) 90%);
+            pointer-events: none;
+            filter: blur(1px);
+        }
+        .worker-avatar i {
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(180deg, #ffffff 0%, #e8f1ff 55%, #b9cfe8 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter:
+                drop-shadow(0 2px 0 rgba(0,0,0,0.35))
+                drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+        }
+        .worker-card:hover .worker-avatar {
+            transform: translateY(-2px) scale(1.06) rotate(-3deg);
+            box-shadow:
+                inset 0 -6px 12px rgba(0,0,0,0.3),
+                inset 0 4px 8px rgba(255,255,255,0.4),
+                0 14px 26px rgba(15,23,42,0.35),
+                0 4px 8px rgba(15,23,42,0.2);
         }
         .worker-id {
             position: absolute;
@@ -893,6 +929,26 @@
             background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+        }
+
+
+        /* Equal-width action buttons row (View / Edit / Print / Delete) */
+        .report-item { flex-wrap: wrap; }
+        .report-item > div:last-child {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            flex: 1 1 auto;
+            min-width: 260px;
+        }
+        .report-item > div:last-child button {
+            margin-left: 0 !important;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            white-space: nowrap;
         }
 
         .card-buttons {
@@ -7487,7 +7543,7 @@ window.YMCO_showSplash = function(){
                                 <div class="signature-line-injury">Project Nurse / Paramedic Name & Signature</div>
                             </div>
                         </div>
-                        <div class="signature-box-injury quality-signature">
+                        <div class="signature-box-injury quality-signature perm-sign_clinic">
                             <div class="signature-header">
                                 <i class="fas fa-user-shield"></i>
                                 <h4>Safety Manager</h4>
@@ -7800,7 +7856,7 @@ window.YMCO_showSplash = function(){
                                 <div class="signature-line-injury">Project Nurse / Paramedic Name & Signature</div>
                             </div>
                         </div>
-                        <div class="signature-box-injury quality-signature">
+                        <div class="signature-box-injury quality-signature perm-sign_injury">
                             <div class="signature-header">
                                 <i class="fas fa-user-check"></i>
                                 <h4>Reviewed by (PMC)</h4>
@@ -8786,6 +8842,9 @@ window.YMCO_showSplash = function(){
         let physicalFormDirty = false;
         let clinicFormDirty = false;
         let injuryFormDirty = false;
+        let viewSigningMode = false;
+        let viewingClinicIdx = null;
+        let viewingInjuryIdx = null;
         let dashboardCharts = {};
         let injuryPlacedParts = new Map();
         let injurySelectedPartName = null;
@@ -9625,14 +9684,44 @@ window.YMCO_showSplash = function(){
                 const clinicHtml = buildList(clinicReports, 'var(--accent)', 'Clinic');
                 const injuryHtml = buildList(injuryReports, 'var(--danger)', 'Injury');
 
-                const initials = worker.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                const avatarBg = '#' + Math.floor(Math.abs(worker.name.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 16777215).toString(16).padStart(6, '0');
+                const jobIconMap = [
+                  [/electric/i, 'fa-bolt', ['#fde047','#b45309']],
+                  [/carpenter|joiner/i, 'fa-hammer', ['#fbbf24','#78350f']],
+                  [/plumb/i, 'fa-faucet', ['#67e8f9','#0e7490']],
+                  [/weld/i, 'fa-fire', ['#fb923c','#7c2d12']],
+                  [/paint/i, 'fa-paint-roller', ['#f472b6','#9d174d']],
+                  [/mason|brick|concret/i, 'fa-trowel-bricks', ['#f87171','#7f1d1d']],
+                  [/steel|rebar|ironwork/i, 'fa-industry', ['#94a3b8','#334155']],
+                  [/scaffold/i, 'fa-layer-group', ['#fbbf24','#92400e']],
+                  [/crane|rigger|hoist/i, 'fa-arrows-up-to-line', ['#fcd34d','#78350f']],
+                  [/driver|operator|mechanic|machinist|equipment/i, 'fa-truck-pickup', ['#60a5fa','#1e3a8a']],
+                  [/survey/i, 'fa-compass-drafting', ['#a78bfa','#4c1d95']],
+                  [/architect/i, 'fa-drafting-compass', ['#c4b5fd','#5b21b6']],
+                  [/bim|cad/i, 'fa-cube', ['#22d3ee','#155e75']],
+                  [/civil|structural|mep|mechanical|geotech|materials|soil|engineer/i, 'fa-helmet-safety', ['#fbbf24','#a16207']],
+                  [/plann|schedul|estimat|quantity|contract|procure|purchas/i, 'fa-calculator', ['#34d399','#065f46']],
+                  [/document/i, 'fa-folder-open', ['#fcd34d','#92400e']],
+                  [/store|warehouse|logistic/i, 'fa-warehouse', ['#fb923c','#9a3412']],
+                  [/safety|hse|environment/i, 'fa-shield-halved', ['#4ade80','#14532d']],
+                  [/quality|qa|qc|inspector/i, 'fa-clipboard-check', ['#86efac','#166534']],
+                  [/manager|supervisor|foreman|coordinator|administrator|officer/i, 'fa-user-tie', ['#818cf8','#312e81']],
+                  [/nurse|doctor|medic|physician|paramedic/i, 'fa-user-doctor', ['#f87171','#991b1b']],
+                  [/driver/i, 'fa-truck', ['#60a5fa','#1e40af']],
+                  [/security|guard/i, 'fa-user-shield', ['#475569','#0f172a']],
+                  [/clean/i, 'fa-broom', ['#5eead4','#115e59']],
+                  [/cook|chef|catering/i, 'fa-utensils', ['#fb7185','#881337']],
+                  [/labor|helper|worker/i, 'fa-person-digging', ['#fcd34d','#78350f']],
+                ];
+                const roleStr = (worker.role || '') + ' ' + (worker.department || '');
+                let jobIcon = 'fa-hard-hat';
+                let jobColors = ['#3282b8','#0f4c75'];
+                for (const entry of jobIconMap) { if (entry[0].test(roleStr)) { jobIcon = entry[1]; jobColors = entry[2]; break; } }
 
                 const card = document.createElement('div');
                 card.className = 'worker-card';
                 card.innerHTML = `
               <div class="card-header">
-                <div class="worker-avatar" style="background:${avatarBg};">${initials}</div>
+                <div class="worker-avatar" style="--avatar-c1:${jobColors[0]};--avatar-c2:${jobColors[1]};" title="${worker.role}"><i class="fas ${jobIcon}"></i></div>
                 <div style="flex:1">
                   <span class="worker-id" tabindex="0">ID: ${worker.id}</span>
                   <div class="worker-name" title="${worker.name}">${worker.name}</div>
@@ -12063,6 +12152,46 @@ function viewClinicReport(workerId, idx) {
     }
     viewBadge.innerText = 'VIEW MODE';
 
+    // ===== SAFETY MANAGER SIGNING =====
+    viewingClinicIdx = idx;
+    if (window.hasPermission && window.hasPermission('sign_clinic')) {
+        viewSigningMode = true;
+        editingClinicIndex = idx;
+        // enable signature fields only
+        ['manager_name_print','managerSignature','manager_emp_id','manager_sig_date'].forEach(name => {
+            const el = form.querySelector('[name="'+name+'"]');
+            if (el) el.disabled = false;
+        });
+        viewBadge.innerText = 'VIEW + SIGN';
+        viewBadge.style.background = 'rgba(16,185,129,0.35)';
+        // show save-load section with a custom Save Signature button
+        const saveSection = document.querySelector('#clinicModal .save-load-section');
+        saveSection.style.display = 'flex';
+        // hide report name input
+        saveSection.querySelector('#clinicReportName').parentElement.style.display = 'none';
+        // update save button
+        saveSection.querySelectorAll('button').forEach(btn => {
+            if (btn.innerText.includes('Save') || (btn.getAttribute('onclick')||'').includes('saveClinicReport')) {
+                btn.innerHTML = '<i class="fas fa-signature"></i> Save Signature';
+                // Strip onclick attribute so the permissions auto-hider (which
+                // matches the "saveClinicReport" keyword and requires the
+                // `create` permission) doesn't hide this button for users who
+                // only have `sign_clinic`.
+                btn.dataset._origOnclick = btn.getAttribute('onclick') || '';
+                btn.dataset.signatureSave = 'clinic';
+                btn.removeAttribute('onclick');
+                if (btn.dataset._permHiddenBy) {
+                    delete btn.dataset._permHiddenBy;
+                    delete btn.dataset._permOrigDisplay;
+                }
+                btn.style.display = 'inline-flex';
+                btn.onclick = () => saveClinicSignature(workerId, idx);
+            } else if (btn.innerText.includes('Print') || btn.innerText.includes('Preview')) {
+                btn.style.display = 'none';
+            }
+        });
+    }
+
     document.getElementById('clinicModal').classList.add('show');
 
     const originalClose = closeClinicModal;
@@ -12070,11 +12199,22 @@ function viewClinicReport(workerId, idx) {
         inputs.forEach(inp => inp.disabled = false);
         document.getElementById('clinicReportName').disabled = false;
         document.querySelector('#clinicModal .save-load-section').style.display = 'flex';
-        if (viewBadge) viewBadge.innerText = '';
+        document.querySelector('#clinicModal .save-load-section').querySelector('#clinicReportName').parentElement.style.display = '';
+        document.querySelector('#clinicModal .save-load-section').querySelectorAll('button').forEach(btn => {
+            if (btn.innerText.includes('Save Signature')) {
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Report';
+                if (btn.dataset._origOnclick) { btn.setAttribute('onclick', btn.dataset._origOnclick); delete btn.dataset._origOnclick; }
+                delete btn.dataset.signatureSave;
+                btn.onclick = saveClinicReport;
+            } else { btn.style.display = ''; }
+        });
+        if (viewBadge) { viewBadge.innerText = ''; viewBadge.style.background = ''; }
         document.getElementById('clinicForm').reset();
         closeClinicModal = originalClose;
         document.getElementById('clinicModal').classList.remove('show');
         editingClinicIndex = null;
+        viewingClinicIdx = null;
+        viewSigningMode = false;
         currentWorkerForClinic = null;
         clinicFormDirty = false;
     };
@@ -12128,6 +12268,44 @@ function viewInjuryReport(workerId, idx) {
         if (idViewBtn) idViewBtn.style.display = 'inline-flex';
     }, 200);
 
+    // ===== SAFETY MANAGER SIGNING =====
+    viewingInjuryIdx = idx;
+    if (window.hasPermission && window.hasPermission('sign_injury')) {
+        viewSigningMode = true;
+        editingInjuryIndex = idx;
+        // enable signature fields only
+        ['reviewer_name_print','reviewer_signature','reviewer_emp_id','reviewer_date'].forEach(name => {
+            const el = form.querySelector('[name="'+name+'"]');
+            if (el) el.disabled = false;
+        });
+        viewBadge.innerText = 'VIEW + SIGN';
+        viewBadge.style.background = 'rgba(16,185,129,0.35)';
+        // show save-load section with a custom Save Signature button
+        const saveSection = document.querySelector('#injuryModal .save-load-section');
+        saveSection.style.display = 'flex';
+        // hide report name input
+        saveSection.querySelector('#injuryReportName').parentElement.style.display = 'none';
+        // update save button
+        saveSection.querySelectorAll('button').forEach(btn => {
+            if (btn.innerText.includes('Save') || (btn.getAttribute('onclick')||'').includes('saveInjuryReport')) {
+                btn.innerHTML = '<i class="fas fa-signature"></i> Save Signature';
+                // Strip onclick attribute so the permissions auto-hider doesn't
+                // hide this button for users with only `sign_injury`.
+                btn.dataset._origOnclick = btn.getAttribute('onclick') || '';
+                btn.dataset.signatureSave = 'injury';
+                btn.removeAttribute('onclick');
+                if (btn.dataset._permHiddenBy) {
+                    delete btn.dataset._permHiddenBy;
+                    delete btn.dataset._permOrigDisplay;
+                }
+                btn.style.display = 'inline-flex';
+                btn.onclick = () => saveInjurySignature(workerId, idx);
+            } else if (btn.innerText.includes('Print') || btn.innerText.includes('Preview')) {
+                btn.style.display = 'none';
+            }
+        });
+    }
+
     document.getElementById('injuryModal').classList.add('show');
 
     const originalClose = closeInjuryModal;
@@ -12135,14 +12313,65 @@ function viewInjuryReport(workerId, idx) {
         inputs.forEach(inp => inp.disabled = false);
         document.getElementById('injuryReportName').disabled = false;
         document.querySelector('#injuryModal .save-load-section').style.display = 'flex';
-        if (viewBadge) viewBadge.innerText = '';
+        document.querySelector('#injuryModal .save-load-section').querySelector('#injuryReportName').parentElement.style.display = '';
+        document.querySelector('#injuryModal .save-load-section').querySelectorAll('button').forEach(btn => {
+            if (btn.innerText.includes('Save Signature')) {
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Report';
+                if (btn.dataset._origOnclick) { btn.setAttribute('onclick', btn.dataset._origOnclick); delete btn.dataset._origOnclick; }
+                delete btn.dataset.signatureSave;
+                btn.onclick = saveInjuryReport;
+            } else { btn.style.display = ''; }
+        });
+        if (viewBadge) { viewBadge.innerText = ''; viewBadge.style.background = ''; }
         document.getElementById('injuryReportForm').reset();
         closeInjuryModal = originalClose;
         document.getElementById('injuryModal').classList.remove('show');
         editingInjuryIndex = null;
+        viewingInjuryIdx = null;
+        viewSigningMode = false;
         currentWorkerForInjury = null;
         injuryFormDirty = false;
     };
+}
+
+// ===== SIGNATURE SAVE HELPERS =====
+function saveClinicSignature(workerId, idx) {
+    const reports = workerClinicReports[workerId];
+    if (!reports || !reports[idx]) return;
+    const rep = reports[idx];
+    const form = document.getElementById('clinicForm');
+    const sigData = {
+        manager_name_print: form.querySelector('[name="manager_name_print"]')?.value || '',
+        managerSignature: form.querySelector('[name="managerSignature"]')?.value || '',
+        manager_emp_id: form.querySelector('[name="manager_emp_id"]')?.value || '',
+        manager_sig_date: form.querySelector('[name="manager_sig_date"]')?.value || ''
+    };
+    const data = { ...rep.data, ...sigData };
+    const report = { name: rep.name, date: new Date().toISOString(), data };
+    workerClinicReports[workerId][idx] = report;
+    saveAllData();
+    showNotification('Signature saved successfully');
+    playClinicSound();
+    clinicFormDirty = false;
+}
+function saveInjurySignature(workerId, idx) {
+    const reports = workerInjuryReports[workerId];
+    if (!reports || !reports[idx]) return;
+    const rep = reports[idx];
+    const form = document.getElementById('injuryReportForm');
+    const sigData = {
+        reviewer_name_print: form.querySelector('[name="reviewer_name_print"]')?.value || '',
+        reviewer_signature: form.querySelector('[name="reviewer_signature"]')?.value || '',
+        reviewer_emp_id: form.querySelector('[name="reviewer_emp_id"]')?.value || '',
+        reviewer_date: form.querySelector('[name="reviewer_date"]')?.value || ''
+    };
+    const data = { ...rep.data, ...sigData };
+    const report = { name: rep.name, date: new Date().toISOString(), data };
+    workerInjuryReports[workerId][idx] = report;
+    saveAllData();
+    showNotification('Signature saved successfully');
+    playInjurySound();
+    injuryFormDirty = false;
 }
 
 // ==================== PRINT REPORTS FROM LIST ====================
@@ -13025,90 +13254,126 @@ function viewIdPhotoFull() {
         }
 
         // ==================== PRINT ALL REPORTS ====================
-                // ==================== WORKER ID CARD (with Barcode) ====================
+                
+        // ==================== JOB → ICON MAPPING ====================
+        function getJobIcon(role){
+            const r = (role||'').toString().toLowerCase();
+            const map = [
+                [/(welder|لحام)/, 'fa-fire'],
+                [/(electric|كهرب)/, 'fa-bolt'],
+                [/(plumb|سباك|سمكر|pipe|fitter)/, 'fa-wrench'],
+                [/(carpent|نجار)/, 'fa-hammer'],
+                [/(mason|باني|بناء|brick|قصار|plaster)/, 'fa-trowel-bricks'],
+                [/(paint|دهان|صباغ)/, 'fa-paint-roller'],
+                [/(driver|سائق|chauffeur)/, 'fa-truck'],
+                [/(crane|رافعة|operator|تشغيل|مشغل)/, 'fa-truck-monster'],
+                [/(scaffold|سقالة)/, 'fa-layer-group'],
+                [/(steel|حداد|rebar|iron|fixer|تسليح)/, 'fa-screwdriver-wrench'],
+                [/(engineer|مهندس)/, 'fa-helmet-safety'],
+                [/(supervis|مشرف|foreman|ملاحظ)/, 'fa-user-tie'],
+                [/(safety|سلامة|hse)/, 'fa-shield-halved'],
+                [/(doctor|طبيب|physician)/, 'fa-user-doctor'],
+                [/(nurse|ممرض)/, 'fa-user-nurse'],
+                [/(clean|نظاف|janitor)/, 'fa-broom'],
+                [/(cook|طباخ|chef|كوك)/, 'fa-utensils'],
+                [/(security|أمن|حارس|guard)/, 'fa-shield'],
+                [/(admin|إدار|hr|office|محاسب|account)/, 'fa-briefcase'],
+                [/(survey|مساح)/, 'fa-ruler-combined'],
+                [/(mechanic|ميكانيك|fitter)/, 'fa-gears'],
+                [/(labor|عامل|helper|مساعد|worker)/, 'fa-person-digging'],
+            ];
+            for (const [re,ic] of map){ if(re.test(r)) return ic; }
+            return 'fa-hard-hat';
+        }
+
+        // ==================== WORKER ID CARD (with Barcode) ====================
         function printWorkerIdCard(workerId) {
             const w = workers.find(x => x.id === workerId);
             if (!w) { alert('Worker not found'); return; }
-            const initials = w.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
-            const avatarBg = '#' + Math.floor(Math.abs(w.name.split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % 16777215).toString(16).padStart(6,'0');
-            const win = window.open('', '_blank', 'width=520,height=760');
+            const ic = getJobIcon(w.role);
+            const issueDate = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+            const expiryDate = new Date(Date.now()+365*24*3600*1000).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+            const win = window.open('', '_blank', 'width=520,height=820');
             if (!win) { alert('Please allow pop-ups to print the ID card.'); return; }
             const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ID Card - ${w.name}</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',Arial,sans-serif;}
-  body{background:#e2e8f0;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;}
+  body{background:#eef2f7;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;}
   .toolbar{display:flex;gap:10px;}
-  .toolbar button{padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;}
-  .btn-print{background:#0f4c75;color:#fff;}
+  .toolbar button{padding:10px 22px;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;letter-spacing:.5px;}
+  .btn-print{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#c9a84c;}
   .btn-close{background:#64748b;color:#fff;}
-  .id-card{width:340px;height:540px;background:#fff;border-radius:18px;overflow:hidden;
-    box-shadow:0 20px 40px rgba(0,0,0,0.2);position:relative;}
-  .id-header{background:linear-gradient(135deg,#0f4c75 0%,#3282b8 50%,#00b4d8 100%);
-    color:#fff;padding:20px;text-align:center;}
-  .id-header h1{font-size:16px;font-weight:800;letter-spacing:1px;}
-  .id-header p{font-size:11px;opacity:0.9;margin-top:4px;letter-spacing:0.5px;}
-  .id-body{padding:18px 20px 14px;display:flex;flex-direction:column;align-items:center;}
-  .avatar{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    color:#fff;font-size:34px;font-weight:800;margin-top:-48px;border:4px solid #fff;
-    box-shadow:0 4px 10px rgba(0,0,0,0.15);}
-  .name{font-size:18px;font-weight:800;color:#1e293b;margin-top:12px;text-align:center;}
-  .role{font-size:12px;color:#64748b;margin-top:3px;text-align:center;}
-  .info{width:100%;margin-top:14px;border-top:1px dashed #cbd5e1;padding-top:10px;}
-  .row{display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;}
-  .row .lbl{color:#64748b;font-weight:600;}
-  .row .val{color:#1e293b;font-weight:700;max-width:60%;text-align:right;}
-  .status{display:inline-block;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:700;}
-  .s-Active{background:#d1fae5;color:#065f46;}
-  .s-Warning{background:#fef3c7;color:#92400e;}
-  .s-Danger{background:#fee2e2;color:#991b1b;}
-  .qr-wrap{margin-top:12px;display:flex;flex-direction:column;align-items:center;width:100%;background:#f8fafc;padding:10px 0 8px;border-radius:8px;}
-  .qr-wrap #qr{width:110px;height:110px;}
-  .qr-wrap #qr img, .qr-wrap #qr canvas{width:110px!important;height:110px!important;}
-  .qr-id{margin-top:6px;font-size:11px;font-weight:700;color:#1e293b;letter-spacing:1px;}
-  .footer{position:absolute;bottom:0;left:0;right:0;background:#0f4c75;color:#fff;
-    text-align:center;font-size:9.5px;padding:6px;letter-spacing:0.5px;}
-  @media print{
-    body{background:#fff;padding:0;}
-    .toolbar{display:none;}
-    .id-card{box-shadow:none;}
-    @page{size:auto;margin:6mm;}
-  }
+  .card{width:360px;height:570px;background:#fff;border:1px solid #e8e0d0;border-radius:18px;overflow:hidden;
+    box-shadow:0 25px 50px -12px rgba(15,23,42,.28);display:flex;flex-direction:column;position:relative;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .card *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
+  .hd{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;padding:22px 22px 20px;position:relative;}
+  .hd::after{content:"";position:absolute;bottom:0;left:0;right:0;height:4px;
+    background:linear-gradient(90deg,#c9a84c 0%,#f0d78c 50%,#c9a84c 100%);}
+  .crown{display:flex;justify-content:space-between;align-items:center;}
+  .mk{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#f0d78c);
+    display:flex;align-items:center;justify-content:center;color:#1a1a2e;font-weight:900;font-size:18px;
+    box-shadow:0 4px 10px rgba(201,168,76,.4);}
+  .meta{text-align:right;}
+  .meta .l{font-size:8px;letter-spacing:2px;color:#c9a84c;font-weight:700;}
+  .meta .v{font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:2px;font-weight:700;}
+  .ti{margin-top:16px;font-family:'Playfair Display',serif;font-size:18px;font-weight:700;letter-spacing:.5px;}
+  .sb{font-size:9px;letter-spacing:3px;color:#c9a84c;margin-top:3px;font-weight:600;text-transform:uppercase;}
+  .body{padding:20px 22px 12px;text-align:center;}
+  .av{width:104px;height:104px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#16213e);
+    display:flex;align-items:center;justify-content:center;color:#c9a84c;font-size:44px;margin:0 auto;
+    border:3px solid #c9a84c;box-shadow:0 8px 20px -6px rgba(201,168,76,.45);}
+  .nm{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-top:14px;color:#1a1a2e;line-height:1.15;}
+  .ornament{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:8px;color:#c9a84c;}
+  .ornament::before,.ornament::after{content:"";flex:1;max-width:38px;height:1px;background:#c9a84c;}
+  .ornament span{font-size:10px;letter-spacing:2.5px;font-weight:800;text-transform:uppercase;}
+  .dp{font-size:10px;color:#64748b;margin-top:6px;letter-spacing:1.2px;font-weight:600;}
+  .info{margin:14px 22px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .c{background:#faf7ef;border:1px solid #e8e0d0;border-radius:8px;padding:7px 10px;}
+  .c .k{font-size:8px;letter-spacing:1.5px;color:#c9a84c;font-weight:800;text-transform:uppercase;}
+  .c .v{font-size:11px;font-weight:800;color:#1a1a2e;margin-top:1px;font-family:'JetBrains Mono',monospace;}
+  .ft{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding:12px 22px;background:#1a1a2e;color:#c9a84c;}
+  .qr{width:54px;height:54px;background:#fff;color:#1a1a2e;display:flex;align-items:center;justify-content:center;border-radius:6px;padding:4px;}
+  .qr > div{width:46px!important;height:46px!important;}
+  .qr img,.qr canvas{width:46px!important;height:46px!important;}
+  .seal{font-size:9px;letter-spacing:2px;font-weight:800;text-align:right;line-height:1.6;}
+  @media print{body{background:#fff;padding:0;}.toolbar{display:none;}.card{box-shadow:none;}@page{size:auto;margin:6mm;}}
 </style></head><body>
   <div class="toolbar">
-    <button class="btn-print" onclick="window.print()">🖨 Print</button>
+    <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
     <button class="btn-close" onclick="window.close()">Close</button>
   </div>
-  <div class="id-card">
-    <div class="id-header">
-      <h1>WORKER IDENTIFICATION</h1>
-      <p>${(w.company||'').toUpperCase()}</p>
-    </div>
-    <div class="id-body">
-      <div class="avatar" style="background:${avatarBg};">${initials}</div>
-      <div class="name">${w.name}</div>
-      <div class="role">${w.role||''} • ${w.department||''}</div>
-      <div class="info">
-        <div class="row"><span class="lbl">ID No.</span><span class="val">${w.id}</span></div>
-        <div class="row"><span class="lbl">Project</span><span class="val">${w.project||'-'}</span></div>
-        <div class="row"><span class="lbl">Nationality</span><span class="val">${w.nationality||'-'}</span></div>
-        <div class="row"><span class="lbl">DOB / Age</span><span class="val">${w.dob||'-'} (${w.age||'-'})</span></div>
-        <div class="row"><span class="lbl">Phone</span><span class="val">${w.phone||'-'}</span></div>
-        <div class="row"><span class="lbl">Status</span><span class="val"><span class="status s-${w.status||'Active'}">${w.status||'Active'}</span></span></div>
+  <div class="card">
+    <div class="hd">
+      <div class="crown">
+        <div class="mk">Y</div>
+        <div class="meta"><div class="l">CARD NO.</div><div class="v">${w.id}</div></div>
       </div>
-      <div class="qr-wrap"><div id="qr"></div><div class="qr-id">ID: ${w.id}</div></div>
+      <div class="ti">${(w.company||'YMCO Construction')}</div>
+      <div class="sb">— Official Employee Pass —</div>
     </div>
-    <div class="footer">VALID ON-SITE • SCAN QR CODE TO VERIFY</div>
+    <div class="body">
+      <div class="av"><i class="fas ${ic}"></i></div>
+      <div class="nm">${w.name}</div>
+      <div class="ornament"><span>${w.role||'WORKER'}</span></div>
+      <div class="dp">${(w.department||'').toUpperCase()}</div>
+    </div>
+    <div class="info">
+      <div class="c"><div class="k">Nationality</div><div class="v">${w.nationality||'—'}</div></div>
+      <div class="c"><div class="k">Project</div><div class="v">${w.project||'—'}</div></div>
+      <div class="c"><div class="k">Issued</div><div class="v">${issueDate}</div></div>
+      <div class="c"><div class="k">Expires</div><div class="v">${expiryDate}</div></div>
+    </div>
+    <div class="ft">
+      <div class="qr"><div id="qr"></div></div>
+      <div class="seal">★ OFFICIAL SEAL ★<br>YMCO AUTHORIZED</div>
+    </div>
   </div>
 <script>
-  try {
-    new QRCode(document.getElementById("qr"), {
-      text: String(${JSON.stringify(String(w.id))}),
-      width: 110, height: 110,
-      colorDark: "#0f172a", colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H
-    });
-  } catch(e){ console.error(e); }
+  try { new QRCode(document.getElementById("qr"), {text:String(${JSON.stringify(String(w.id))}),width:46,height:46,colorDark:"#1a1a2e",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H}); } catch(e){}
 <\/script>
 </body></html>`;
             win.document.open();
@@ -13264,213 +13529,99 @@ function viewIdPhotoFull() {
             if (!workers || workers.length === 0) { alert('No workers to print.'); return; }
             const win = window.open('', '_blank', 'width=900,height=800');
             if (!win) { alert('Please allow pop-ups to print ID cards.'); return; }
-            const issueDate = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-            const expiryDate = new Date(Date.now()+365*24*3600*1000).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+            const issueDate = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+            const expiryDate = new Date(Date.now()+365*24*3600*1000).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
             const cardsHtml = workers.map(w => {
-                const initials = (w.name||'?').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
-                const seed = (w.name||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
-                const hue = seed % 360;
-                const avatarBg = `linear-gradient(135deg, hsl(${hue},65%,45%) 0%, hsl(${(hue+40)%360},70%,55%) 100%)`;
+                const ic = getJobIcon(w.role);
                 const qrId = 'qr_' + String(w.id).replace(/[^a-zA-Z0-9_-]/g,'_');
-                const status = w.status||'Active';
                 return `
-                <div class="id-card" data-qr-id="${qrId}" data-qr-text="${String(w.id).replace(/"/g,'&quot;')}">
-                  <div class="card-bg"></div>
-                  <div class="top-strip">
-                    <div class="brand">
-                      <div class="brand-mark"><img src="data:image/jpeg;base64,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" alt="logo" style="width:100%;height:100%;object-fit:contain;border-radius:8px;background:#fff;padding:3px;"/></div>
-                      <div class="brand-text">
-                        <div class="brand-co">${((w.company||'COMPANY')+'').toUpperCase()}</div>
-                        <div class="brand-sub">EMPLOYEE IDENTIFICATION</div>
-                      </div>
+                <div class="card" data-qr-id="${qrId}" data-qr-text="${String(w.id).replace(/"/g,'&quot;')}">
+                  <div class="hd">
+                    <div class="crown">
+                      <div class="mk">Y</div>
+                      <div class="meta"><div class="l">CARD NO.</div><div class="v">${w.id}</div></div>
                     </div>
-                    <div class="status-pill s-${status}">${status}</div>
+                    <div class="ti">${(w.company||'YMCO Construction')}</div>
+                    <div class="sb">— Official Employee Pass —</div>
                   </div>
-
-                  <div class="identity">
-                    <div class="avatar-ring">
-                      <div class="avatar" style="background:${avatarBg};">${initials}</div>
-                    </div>
-                    <div class="name">${w.name||''}</div>
-                    <div class="role">${w.role||'—'}</div>
-                    <div class="dept">${w.department||''}</div>
+                  <div class="body">
+                    <div class="av"><i class="fas ${ic}"></i></div>
+                    <div class="nm">${w.name||''}</div>
+                    <div class="ornament"><span>${w.role||'WORKER'}</span></div>
+                    <div class="dp">${(w.department||'').toUpperCase()}</div>
                   </div>
-
-                  <div class="info-grid">
-                    <div class="cell"><div class="k">ID NUMBER</div><div class="v mono">${w.id}</div></div>
-                    <div class="cell"><div class="k">PROJECT</div><div class="v">${w.project||'—'}</div></div>
-                    <div class="cell"><div class="k">NATIONALITY</div><div class="v">${w.nationality||'—'}</div></div>
-                    <div class="cell"><div class="k">AGE</div><div class="v">${w.age||'—'}</div></div>
-                    <div class="cell wide"><div class="k">PHONE</div><div class="v mono">${w.phone||'—'}</div></div>
+                  <div class="info">
+                    <div class="c"><div class="k">Nationality</div><div class="v">${w.nationality||'—'}</div></div>
+                    <div class="c"><div class="k">Project</div><div class="v">${w.project||'—'}</div></div>
+                    <div class="c"><div class="k">Issued</div><div class="v">${issueDate}</div></div>
+                    <div class="c"><div class="k">Expires</div><div class="v">${expiryDate}</div></div>
                   </div>
-
-                  <div class="qr-row">
-                    <div class="qr-box"><div id="${qrId}"></div></div>
-                    <div class="qr-meta">
-                      <div class="qr-label">SCAN TO VERIFY</div>
-                      <div class="qr-dates">
-                        <div><span>ISSUED</span><b>${issueDate}</b></div>
-                        <div><span>EXPIRES</span><b>${expiryDate}</b></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="footer">
-                    <span class="dot"></span>
-                    AUTHORIZED ON-SITE PERSONNEL · PROPERTY OF ${((w.company||'COMPANY')+'').toUpperCase()}
-                    <span class="dot"></span>
+                  <div class="ft">
+                    <div class="qr"><div id="${qrId}"></div></div>
+                    <div class="seal">★ OFFICIAL SEAL ★<br>YMCO AUTHORIZED</div>
                   </div>
                 </div>`;
             }).join('');
             const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Worker ID Cards (${workers.length})</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{font-family:'Inter',-apple-system,Arial,sans-serif;color:#0f172a;}
-  body{background:linear-gradient(135deg,#e0e7ef 0%,#f1f5f9 100%);padding:24px;min-height:100vh;}
-  .toolbar{display:flex;gap:10px;justify-content:center;margin-bottom:22px;position:sticky;top:0;background:rgba(241,245,249,0.92);backdrop-filter:blur(8px);padding:10px 0;z-index:10;border-radius:12px;}
-  .toolbar button{padding:11px 22px;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;letter-spacing:0.4px;display:inline-flex;align-items:center;gap:8px;transition:transform .15s;}
-  .toolbar button:hover{transform:translateY(-1px);}
-  .btn-print{background:linear-gradient(135deg,#0f4c75,#3282b8);color:#fff;box-shadow:0 6px 14px -4px rgba(15,76,117,0.5);}
+  html,body{font-family:'Inter',-apple-system,Arial,sans-serif;color:#1a1a2e;}
+  body{background:linear-gradient(135deg,#e8e0d0 0%,#f5f1e8 100%);padding:24px;min-height:100vh;}
+  .toolbar{display:flex;gap:10px;justify-content:center;margin-bottom:22px;position:sticky;top:0;background:rgba(245,241,232,.92);backdrop-filter:blur(8px);padding:10px 0;z-index:10;border-radius:12px;}
+  .toolbar button{padding:11px 22px;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;letter-spacing:.5px;display:inline-flex;align-items:center;gap:8px;}
+  .btn-print{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#c9a84c;box-shadow:0 6px 14px -4px rgba(26,26,46,.5);}
   .btn-close{background:#475569;color:#fff;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:26px;justify-items:center;}
 
-  .id-card{
-    width:360px;height:570px;background:#ffffff;border-radius:22px;overflow:hidden;
-    position:relative;
-    box-shadow:0 25px 50px -12px rgba(15,23,42,0.28), 0 0 0 1px rgba(15,23,42,0.04);
-    display:flex;flex-direction:column;
-    -webkit-print-color-adjust:exact;print-color-adjust:exact;
-  }
-  .id-card *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
-  .card-bg{
-    position:absolute;inset:0;z-index:0;pointer-events:none;
-    background:
-      radial-gradient(circle at 100% 0%, rgba(50,130,184,0.18) 0%, transparent 45%),
-      radial-gradient(circle at 0% 100%, rgba(0,180,216,0.12) 0%, transparent 45%);
-  }
-  .card-bg::before{
-    content:"";position:absolute;inset:0;
-    background-image:
-      linear-gradient(rgba(15,76,117,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(15,76,117,0.04) 1px, transparent 1px);
-    background-size:24px 24px;
-    mask-image:linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
-  }
-
-  .top-strip{
-    position:relative;z-index:1;
-    background:linear-gradient(110deg,#0a2540 0%,#0f4c75 45%,#1e6091 100%);
-    color:#fff;padding:16px 20px;
-    display:flex;justify-content:space-between;align-items:center;
-    border-bottom:3px solid #00b4d8;
-  }
-  .brand{display:flex;align-items:center;gap:10px;}
-  .brand-mark{
-    width:44px;height:44px;border-radius:10px;
-    background:#fff;
-    display:flex;align-items:center;justify-content:center;
-    overflow:hidden;
-    box-shadow:0 4px 10px rgba(0,0,0,0.25);
-  }
-  .brand-mark img{width:100%;height:100%;object-fit:contain;}
-  .brand-co{font-size:12px;font-weight:800;letter-spacing:1.2px;line-height:1.1;}
-  .brand-sub{font-size:8.5px;font-weight:500;letter-spacing:1.5px;opacity:0.75;margin-top:2px;}
-  .status-pill{
-    padding:5px 11px;border-radius:999px;font-size:9.5px;font-weight:800;
-    letter-spacing:1px;text-transform:uppercase;
-    background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);backdrop-filter:blur(4px);
-  }
-  .s-Active{background:rgba(16,185,129,0.25);border-color:rgba(110,231,183,0.5);color:#d1fae5;}
-  .s-Warning{background:rgba(245,158,11,0.25);border-color:rgba(252,211,77,0.5);color:#fef3c7;}
-  .s-Danger{background:rgba(239,68,68,0.25);border-color:rgba(252,165,165,0.5);color:#fee2e2;}
-
-  .identity{
-    position:relative;z-index:1;
-    padding:18px 20px 12px;text-align:center;
-    display:flex;flex-direction:column;align-items:center;
-  }
-  .avatar-ring{
-    padding:3px;border-radius:50%;
-    background:conic-gradient(from 180deg,#00b4d8,#3282b8,#0f4c75,#00b4d8);
-    box-shadow:0 8px 20px -6px rgba(15,76,117,0.4);
-  }
-  .avatar{
-    width:88px;height:88px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    color:#fff;font-size:30px;font-weight:800;letter-spacing:1px;
-    border:3px solid #fff;
-  }
-  .name{font-size:17px;font-weight:800;color:#0f172a;margin-top:10px;letter-spacing:-0.3px;line-height:1.15;}
-  .role{font-size:11.5px;font-weight:700;color:#0f4c75;margin-top:4px;letter-spacing:0.8px;text-transform:uppercase;}
-  .dept{font-size:10.5px;color:#64748b;margin-top:2px;font-weight:500;}
-
-  .info-grid{
-    position:relative;z-index:1;
-    margin:10px 18px 0;padding:12px;
-    background:rgba(248,250,252,0.85);border:1px solid #e2e8f0;border-radius:12px;
-    display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;
-  }
-  .cell.wide{grid-column:1/-1;}
-  .cell .k{font-size:8.5px;font-weight:700;letter-spacing:1px;color:#64748b;margin-bottom:2px;}
-  .cell .v{font-size:11.5px;font-weight:700;color:#0f172a;line-height:1.2;word-break:break-word;}
-  .mono{font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;}
-
-  .qr-row{
-    position:relative;z-index:1;
-    margin:12px 18px 0;display:flex;gap:12px;align-items:center;
-  }
-  .qr-box{
-    width:90px;height:90px;background:#fff;padding:6px;border-radius:10px;
-    border:1px solid #e2e8f0;flex-shrink:0;
-    box-shadow:0 3px 8px rgba(15,23,42,0.06);
-  }
-  .qr-box > div{width:78px!important;height:78px!important;}
-  .qr-box img,.qr-box canvas{width:78px!important;height:78px!important;}
-  .qr-meta{flex:1;min-width:0;}
-  .qr-label{font-size:9px;font-weight:800;letter-spacing:1.5px;color:#0f4c75;margin-bottom:8px;}
-  .qr-dates{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-  .qr-dates > div{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:5px 8px;}
-  .qr-dates span{display:block;font-size:7.5px;font-weight:700;letter-spacing:0.8px;color:#94a3b8;}
-  .qr-dates b{display:block;font-size:9.5px;color:#0f172a;font-weight:800;margin-top:1px;}
-
-  .footer{
-    position:absolute;bottom:0;left:0;right:0;z-index:1;
-    background:linear-gradient(90deg,#0a2540,#0f4c75,#0a2540);color:#cbd5e1;
-    text-align:center;font-size:7.5px;font-weight:600;letter-spacing:1px;
-    padding:7px 10px;display:flex;align-items:center;justify-content:center;gap:8px;
-  }
-  .footer .dot{width:4px;height:4px;border-radius:50%;background:#00b4d8;flex-shrink:0;}
+  .card{width:360px;height:570px;background:#fff;border:1px solid #e8e0d0;border-radius:18px;overflow:hidden;
+    box-shadow:0 25px 50px -12px rgba(15,23,42,.28);display:flex;flex-direction:column;position:relative;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .card *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
+  .hd{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;padding:22px 22px 20px;position:relative;}
+  .hd::after{content:"";position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#c9a84c 0%,#f0d78c 50%,#c9a84c 100%);}
+  .crown{display:flex;justify-content:space-between;align-items:center;}
+  .mk{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#f0d78c);display:flex;align-items:center;justify-content:center;color:#1a1a2e;font-weight:900;font-size:18px;box-shadow:0 4px 10px rgba(201,168,76,.4);}
+  .meta{text-align:right;}
+  .meta .l{font-size:8px;letter-spacing:2px;color:#c9a84c;font-weight:700;}
+  .meta .v{font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:2px;font-weight:700;}
+  .ti{margin-top:16px;font-family:'Playfair Display',serif;font-size:18px;font-weight:700;letter-spacing:.5px;}
+  .sb{font-size:9px;letter-spacing:3px;color:#c9a84c;margin-top:3px;font-weight:600;text-transform:uppercase;}
+  .body{padding:20px 22px 12px;text-align:center;}
+  .av{width:104px;height:104px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;color:#c9a84c;font-size:44px;margin:0 auto;border:3px solid #c9a84c;box-shadow:0 8px 20px -6px rgba(201,168,76,.45);}
+  .nm{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;margin-top:14px;color:#1a1a2e;line-height:1.15;}
+  .ornament{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:8px;color:#c9a84c;}
+  .ornament::before,.ornament::after{content:"";flex:1;max-width:38px;height:1px;background:#c9a84c;}
+  .ornament span{font-size:10px;letter-spacing:2.5px;font-weight:800;text-transform:uppercase;}
+  .dp{font-size:10px;color:#64748b;margin-top:6px;letter-spacing:1.2px;font-weight:600;}
+  .info{margin:14px 22px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .c{background:#faf7ef;border:1px solid #e8e0d0;border-radius:8px;padding:7px 10px;}
+  .c .k{font-size:8px;letter-spacing:1.5px;color:#c9a84c;font-weight:800;text-transform:uppercase;}
+  .c .v{font-size:11px;font-weight:800;color:#1a1a2e;margin-top:1px;font-family:'JetBrains Mono',monospace;}
+  .ft{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding:12px 22px;background:#1a1a2e;color:#c9a84c;}
+  .qr{width:54px;height:54px;background:#fff;color:#1a1a2e;display:flex;align-items:center;justify-content:center;border-radius:6px;padding:4px;}
+  .qr > div{width:46px!important;height:46px!important;}
+  .qr img,.qr canvas{width:46px!important;height:46px!important;}
+  .seal{font-size:9px;letter-spacing:2px;font-weight:800;text-align:right;line-height:1.6;}
 
   @media print{
-    html,body{background:#fff !important;padding:0 !important;margin:0 !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;}
+    html,body{background:#fff !important;padding:0 !important;margin:0 !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
     .toolbar{display:none !important;}
     .grid{display:grid !important;grid-template-columns:repeat(2,360px) !important;gap:12px !important;justify-content:center !important;}
-    .id-card{
-      width:360px !important;height:570px !important;
-      box-shadow:0 0 0 1px #cbd5e1 !important;
-      break-inside:avoid !important;page-break-inside:avoid !important;
-      margin:0 !important;
-    }
+    .card{width:360px !important;height:570px !important;box-shadow:0 0 0 1px #e8e0d0 !important;break-inside:avoid !important;page-break-inside:avoid !important;margin:0 !important;}
     @page{size:A4 portrait;margin:8mm;}
   }
 </style></head><body>
   <div class="toolbar">
-    <button class="btn-print" onclick="window.print()">🖨 Print All (${workers.length})</button>
+    <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Print All (${workers.length})</button>
     <button class="btn-close" onclick="window.close()">Close</button>
   </div>
   <div class="grid">${cardsHtml}</div>
 <script>
-  document.querySelectorAll('.id-card').forEach(function(card){
-    try {
-      new QRCode(card.querySelector('.qr-box > div'), {
-        text: card.getAttribute('data-qr-text'),
-        width: 78, height: 78,
-        colorDark: "#0f172a", colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
-      });
-    } catch(e){ console.error(e); }
+  document.querySelectorAll('.card').forEach(function(card){
+    try { new QRCode(card.querySelector('.qr > div'), {text:card.getAttribute('data-qr-text'),width:46,height:46,colorDark:"#1a1a2e",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H}); } catch(e){}
   });
 <\/script>
 </body></html>`;
@@ -17112,9 +17263,9 @@ window.toggleInjuryPrintPreview = function(){
 
   // ---------- Permissions matrix ----------
   const PERMS = {
-    admin:              ['view','create','edit','delete','export','manage_users','view_reports','export_json','import_json','cloud_backup','cloud_restore'],
-    head_of_hse:        ['view','create','edit','export','view_reports'],
-    safety_manager:     ['view','create','edit','export','view_reports'],
+    admin:              ['view','create','edit','delete','export','manage_users','view_reports','export_json','import_json','cloud_backup','cloud_restore','sign_injury','sign_clinic'],
+    head_of_hse:        ['view','create','edit','export','view_reports','sign_injury','sign_clinic'],
+    safety_manager:     ['view','create','edit','export','view_reports','sign_injury','sign_clinic'],
     safety_supervisor:  ['view','create'],
     pending:            []
   };
@@ -17139,13 +17290,14 @@ window.toggleInjuryPrintPreview = function(){
     }
     return (PERMS[currentUserRole] || []).includes(action);
   };
-  window.ALL_PERMS = ['view','create','edit','delete','export','manage_users','view_reports','export_json','import_json','cloud_backup','cloud_restore'];
+  window.ALL_PERMS = ['view','create','edit','delete','export','manage_users','view_reports','export_json','import_json','cloud_backup','cloud_restore','sign_injury','sign_clinic'];
   window.PERM_LABELS = {
     view:'View records', create:'Create records', edit:'Edit records',
     delete:'Delete records', export:'Export / print', manage_users:'Manage users',
     view_reports:'View reports',
     export_json:'Export JSON', import_json:'Import JSON',
-    cloud_backup:'Backup to Cloud', cloud_restore:'Restore from Cloud'
+    cloud_backup:'Backup to Cloud', cloud_restore:'Restore from Cloud',
+    sign_injury:'Sign Injury Report', sign_clinic:'Sign Site Clinic Report'
   };
   window.getCurrentUser = () => currentUser;
   window.getCurrentRole = () => currentUserRole;
@@ -17219,7 +17371,7 @@ window.toggleInjuryPrintPreview = function(){
 
   function applyPermissionsToDOM(){
     // Legacy perm-<action> class support
-    ['delete','edit','export','manage_users','create','view_reports','export_json','import_json','cloud_backup','cloud_restore'].forEach(act => {
+    ['delete','edit','export','manage_users','create','view_reports','export_json','import_json','cloud_backup','cloud_restore','sign_injury','sign_clinic'].forEach(act => {
       document.querySelectorAll('.perm-'+act).forEach(el => {
         el.style.display = hasPermission(act) ? '' : 'none';
       });
@@ -17227,6 +17379,15 @@ window.toggleInjuryPrintPreview = function(){
     // Auto-tag known action buttons by selector/onclick pattern
     const candidates = document.querySelectorAll('button, a.btn, .nav-btn, input[type="button"], input[type="submit"]');
     candidates.forEach(el => {
+      if (el.dataset && el.dataset.signatureSave) {
+        const signAct = el.dataset.signatureSave === 'clinic' ? 'sign_clinic' : 'sign_injury';
+        if(hasPermission(signAct)){
+          el.style.display = 'inline-flex';
+          delete el.dataset._permHiddenBy;
+          delete el.dataset._permOrigDisplay;
+          return;
+        }
+      }
       for(const act of Object.keys(PERM_SELECTORS)){
         if(_permMatch(el, PERM_SELECTORS[act])){
           const allowed = hasPermission(act);
