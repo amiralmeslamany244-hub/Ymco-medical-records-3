@@ -6718,6 +6718,7 @@ window.YMCO_showSplash = function(){
                 <button class="btn" onclick="cloudRestore()" title="Restore from Lovable Cloud backup" style="background:linear-gradient(135deg,#f59e0b,#d97706);min-width:120px;"><i class="fas fa-cloud-download-alt"></i> Restore from Cloud</button>
                 <button class="btn" onclick="printAllWorkerIdCards()" title="Print QR ID cards for all workers" style="background:linear-gradient(135deg,#0f4c75,#3282b8);min-width:120px;"><i class="fas fa-id-badge"></i> Print All ID Cards</button>
                 <button class="btn" onclick="openQrScanner()" title="Scan worker QR code to open file" style="background:linear-gradient(135deg,#16a34a,#15803d);min-width:120px;"><i class="fas fa-qrcode"></i> Scan QR</button>
+                <button class="btn" onclick="openMonthlyInjuryReport()" title="Generate monthly injury report (PDF)" style="background:linear-gradient(135deg,#dc2626,#991b1b);min-width:120px;"><i class="fas fa-file-medical-alt"></i> Monthly Injury Report</button>
             </div>
             <div class="workers-grid" id="workersGrid"></div>
         </div>
@@ -17887,5 +17888,349 @@ window.toggleInjuryPrintPreview = function(){
 })();
 </script>
 
+<!-- ====================== MONTHLY INJURY REPORT ====================== -->
+<style>
+  #monthlyInjuryModal{position:fixed;inset:0;background:rgba(15,23,42,0.6);display:none;align-items:flex-start;justify-content:center;z-index:99999;padding:24px;overflow:auto;}
+  #monthlyInjuryModal.show{display:flex;}
+  #monthlyInjuryModal .mi-card{background:#fff;border-radius:16px;max-width:1100px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.3);overflow:hidden;}
+  #monthlyInjuryModal .mi-head{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;background:linear-gradient(135deg,#0f4c75,#3282b8);color:#fff;}
+  #monthlyInjuryModal .mi-head h2{margin:0;font-size:18px;display:flex;align-items:center;gap:10px;}
+  #monthlyInjuryModal .mi-close{background:rgba(255,255,255,0.2);border:none;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px;}
+  #monthlyInjuryModal .mi-body{padding:22px;}
+  #monthlyInjuryModal .mi-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:14px;background:#f1f5f9;border-radius:12px;margin-bottom:18px;}
+  #monthlyInjuryModal .mi-controls label{display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px;}
+  #monthlyInjuryModal .mi-controls input,#monthlyInjuryModal .mi-controls select{padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;}
+  #monthlyInjuryModal .mi-btn{padding:9px 16px;border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-size:13px;}
+  #monthlyInjuryModal .mi-btn-primary{background:linear-gradient(135deg,#0f4c75,#3282b8);}
+  #monthlyInjuryModal .mi-btn-success{background:linear-gradient(135deg,#10b981,#059669);}
+  #monthlyInjuryModal .mi-btn-warn{background:linear-gradient(135deg,#f59e0b,#d97706);}
+  #monthlyInjuryModal .mi-empty{padding:40px;text-align:center;color:#64748b;}
+  /* The actual report */
+  .mi-report{background:#fff;color:#1e293b;font-family:'Inter',sans-serif;padding:28px;border:1px solid #e2e8f0;border-radius:12px;}
+  .mi-report .mi-r-header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f4c75;padding-bottom:14px;margin-bottom:18px;}
+  .mi-report .mi-r-header h1{margin:0;color:#0f4c75;font-size:22px;}
+  .mi-report .mi-r-header .mi-r-sub{font-size:12px;color:#64748b;text-align:right;}
+  .mi-report h2.mi-r-section{font-size:15px;color:#0f4c75;border-left:4px solid #0f4c75;padding-left:10px;margin:22px 0 12px;}
+  .mi-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
+  .mi-kpi{background:linear-gradient(135deg,#f8fafc,#f1f5f9);border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center;}
+  .mi-kpi .mi-k-val{font-size:24px;font-weight:800;color:#0f4c75;}
+  .mi-kpi .mi-k-lab{font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;margin-top:4px;}
+  .mi-kpi.mi-danger .mi-k-val{color:#dc2626;}
+  .mi-kpi.mi-warn .mi-k-val{color:#d97706;}
+  .mi-kpi.mi-success .mi-k-val{color:#059669;}
+  .mi-charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .mi-chart-box{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;}
+  .mi-chart-box h3{margin:0 0 8px;font-size:13px;color:#475569;text-align:center;}
+  .mi-chart-box canvas{max-height:240px;}
+  .mi-table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px;}
+  .mi-table th{background:#0f4c75;color:#fff;padding:7px 6px;text-align:left;font-weight:700;}
+  .mi-table td{padding:6px;border-bottom:1px solid #e2e8f0;}
+  .mi-table tr:nth-child(even) td{background:#f8fafc;}
+  .mi-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;}
+  .mi-badge.firstaid{background:#dcfce7;color:#15803d;}
+  .mi-badge.medical{background:#fef3c7;color:#b45309;}
+  .mi-badge.illness{background:#fee2e2;color:#b91c1c;}
+  .mi-recs{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px;border-radius:8px;}
+  .mi-recs textarea{width:100%;min-height:100px;border:1px solid #fcd34d;border-radius:6px;padding:8px;font-family:inherit;font-size:12.5px;background:#fff;}
+  .mi-signs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;}
+  .mi-sign{border-top:2px solid #0f4c75;padding-top:6px;text-align:center;font-size:11px;color:#475569;font-weight:600;}
+  @media print { #monthlyInjuryModal .mi-controls, #monthlyInjuryModal .mi-head{display:none;} }
+</style>
+
+<div id="monthlyInjuryModal" role="dialog" aria-modal="true">
+  <div class="mi-card">
+    <div class="mi-head">
+      <h2><i class="fas fa-file-medical-alt"></i> Monthly Injury Report / تقرير الإصابات الشهرى</h2>
+      <button class="mi-close" onclick="closeMonthlyInjuryReport()" title="Close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="mi-body">
+      <div class="mi-controls">
+        <div><label>الشهر / Month</label><input type="month" id="miMonth"></div>
+        <div><label>الموقع / Project (optional)</label><select id="miProject"><option value="">-- All Projects --</option></select></div>
+        <div style="flex:1;"></div>
+        <button class="mi-btn mi-btn-primary" onclick="generateMonthlyInjuryReport()"><i class="fas fa-cogs"></i> Generate</button>
+        <button class="mi-btn mi-btn-success" id="miDownloadBtn" onclick="downloadMonthlyInjuryReport()" style="display:none;"><i class="fas fa-file-pdf"></i> Download PDF</button>
+        <button class="mi-btn mi-btn-warn" id="miPrintBtn" onclick="window.print()" style="display:none;"><i class="fas fa-print"></i> Print</button>
+      </div>
+      <div id="miReportContainer">
+        <div class="mi-empty"><i class="fas fa-clipboard-list" style="font-size:48px;color:#cbd5e1;"></i><br><br>اختر الشهر ثم اضغط Generate لإنشاء التقرير<br>Select a month and click Generate to build the report.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  let miCharts = {};
+  const KIND_LABELS = { first_aid:'First Aid', medical_aid:'Medical Aid', occupational_illness:'Occupational Illness' };
+
+  window.openMonthlyInjuryReport = function(){
+    const now = new Date();
+    const ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    const el = document.getElementById('miMonth');
+    if (!el.value) el.value = ym;
+    // Populate project dropdown from workers
+    const sel = document.getElementById('miProject');
+    const projects = new Set();
+    try { (window.workers||[]).forEach(w => { if(w && w.project) projects.add(w.project); }); } catch(e){}
+    sel.innerHTML = '<option value="">-- All Projects --</option>' + Array.from(projects).sort().map(p=>`<option>${escMI(p)}</option>`).join('');
+    document.getElementById('monthlyInjuryModal').classList.add('show');
+  };
+  window.closeMonthlyInjuryReport = function(){
+    document.getElementById('monthlyInjuryModal').classList.remove('show');
+    Object.values(miCharts).forEach(c=>{ try{c.destroy();}catch(e){} });
+    miCharts = {};
+  };
+
+  function escMI(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+  function collectInjuries(year, month, projectFilter){
+    // Reads workerInjuryReports (global, kept in sync with Firebase + localStorage)
+    const wir = (typeof workerInjuryReports !== 'undefined' && workerInjuryReports) ? workerInjuryReports : {};
+    const workersArr = (typeof workers !== 'undefined' && Array.isArray(workers)) ? workers : (window.workers||[]);
+    const workersMap = {};
+    workersArr.forEach(w => { if(w && w.id) workersMap[w.id] = w; });
+    const out = [];
+    Object.entries(wir).forEach(([workerId, reports]) => {
+      if (!Array.isArray(reports)) return;
+      const w = workersMap[workerId] || {};
+      reports.forEach((rep, idx) => {
+        if (!rep || !rep.data) return;
+        const d = rep.data;
+        // Prefer the actual incident date from the form (report_date), fall back to saved date
+        const rawDate = d.report_date || rep.date || '';
+        const dt = rawDate ? new Date(rawDate) : null;
+        if (!dt || isNaN(dt.getTime())) return;
+        if (dt.getFullYear() !== year || dt.getMonth() !== month) return;
+        const project = d.ip_project_site || w.project || '';
+        if (projectFilter && project !== projectFilter) return;
+        out.push({
+          workerId, idx,
+          name: d.ip_fullname || w.name || 'Unknown',
+          empId: d.ip_iqama || w.id || '',
+          project, company: d.ip_company || w.company || '',
+          jobTitle: d.ip_job_role || w.role || '',
+          date: dt, ref: d.report_ref_no || '',
+          kind: Array.isArray(d.injury_kind) ? d.injury_kind : [],
+          types: Array.isArray(d.injury_type_detail) ? d.injury_type_detail.slice() : [],
+          otherType: d.others_injury_text || '',
+          causes: Array.isArray(d.cause) ? d.cause : [],
+          status: Array.isArray(d.status_ip) ? d.status_ip : [],
+          bodyParts: (d.body_parts_selected||'').split('|').map(p=>p.split(':')[0]).filter(Boolean).map(p=>p.replace(/\s*\((Front|Back)\)/i,'')),
+        });
+      });
+    });
+    out.sort((a,b)=>a.date-b.date);
+    return out;
+  }
+
+  function groupCount(arr, keyFn){
+    const m = {};
+    arr.forEach(item => {
+      const ks = keyFn(item);
+      (Array.isArray(ks)?ks:[ks]).forEach(k => { if(!k) return; m[k] = (m[k]||0)+1; });
+    });
+    return m;
+  }
+
+  function buildReport(injuries, year, month, projectFilter){
+    const monthName = new Date(year, month, 1).toLocaleString('en-US',{month:'long',year:'numeric'});
+    const monthNameAr = new Date(year, month, 1).toLocaleString('ar-EG',{month:'long',year:'numeric'});
+    const total = injuries.length;
+    // KPIs
+    const firstAid = injuries.filter(i=>i.kind.includes('first_aid')).length;
+    const medical = injuries.filter(i=>i.kind.includes('medical_aid')).length;
+    const illness = injuries.filter(i=>i.kind.includes('occupational_illness')).length;
+    const uniqueWorkers = new Set(injuries.map(i=>i.workerId)).size;
+    // Previous month comparison
+    const prevDate = new Date(year, month-1, 1);
+    const prevTotal = collectInjuries(prevDate.getFullYear(), prevDate.getMonth(), projectFilter).length;
+    const trend = prevTotal === 0 ? (total>0?'+∞':'0') : (((total-prevTotal)/prevTotal*100).toFixed(0)+'%');
+    const trendColor = total > prevTotal ? '#dc2626' : (total < prevTotal ? '#059669' : '#64748b');
+
+    // Group data for charts
+    const byKind = groupCount(injuries, i=>i.kind.map(k=>KIND_LABELS[k]||k));
+    const byType = groupCount(injuries, i=>{
+      const t = i.types.filter(x=>x!=='others_injury');
+      if (i.otherType) t.push('Others: '+i.otherType);
+      return t;
+    });
+    const byProject = groupCount(injuries, i=>i.project||'Unspecified');
+    const byBodyPart = groupCount(injuries, i=>i.bodyParts);
+    const byCause = groupCount(injuries, i=>i.causes);
+    // By week-of-month
+    const byWeek = {};
+    injuries.forEach(i => {
+      const wk = Math.ceil(i.date.getDate()/7);
+      const key = 'Week '+wk;
+      byWeek[key] = (byWeek[key]||0)+1;
+    });
+
+    const container = document.getElementById('miReportContainer');
+    if (total === 0){
+      container.innerHTML = `<div class="mi-empty"><i class="fas fa-check-circle" style="font-size:48px;color:#10b981;"></i><br><br>لا توجد إصابات مسجلة فى ${escMI(monthName)}${projectFilter?' / '+escMI(projectFilter):''}<br>No injuries recorded for ${escMI(monthName)}.</div>`;
+      document.getElementById('miDownloadBtn').style.display='none';
+      document.getElementById('miPrintBtn').style.display='none';
+      return;
+    }
+
+    const html = `
+      <div id="miPrintArea" class="mi-report">
+        <div class="mi-r-header">
+          <div>
+            <h1><i class="fas fa-file-medical-alt"></i> Monthly Injury &amp; Illness Report</h1>
+            <div style="font-size:13px;color:#475569;margin-top:4px;">تقرير الإصابات وأمراض المهنة الشهرى</div>
+          </div>
+          <div class="mi-r-sub">
+            <div><strong>Period:</strong> ${escMI(monthName)}</div>
+            <div><strong>الفترة:</strong> ${escMI(monthNameAr)}</div>
+            ${projectFilter?`<div><strong>Project:</strong> ${escMI(projectFilter)}</div>`:''}
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+        </div>
+
+        <h2 class="mi-r-section">1. Executive Summary / الملخص التنفيذى</h2>
+        <div class="mi-kpis">
+          <div class="mi-kpi mi-danger"><div class="mi-k-val">${total}</div><div class="mi-k-lab">Total Injuries<br>إجمالى الإصابات</div></div>
+          <div class="mi-kpi mi-success"><div class="mi-k-val">${firstAid}</div><div class="mi-k-lab">First Aid<br>إسعاف أولى</div></div>
+          <div class="mi-kpi mi-warn"><div class="mi-k-val">${medical}</div><div class="mi-k-lab">Medical Aid<br>إسعاف طبى</div></div>
+          <div class="mi-kpi mi-danger"><div class="mi-k-val">${illness}</div><div class="mi-k-lab">Occupational Illness<br>أمراض مهنية</div></div>
+          <div class="mi-kpi"><div class="mi-k-val">${uniqueWorkers}</div><div class="mi-k-lab">Workers Affected<br>عمال متأثرون</div></div>
+          <div class="mi-kpi"><div class="mi-k-val" style="color:${trendColor};">${trend}</div><div class="mi-k-lab">vs Prev Month (${prevTotal})<br>مقارنة بالسابق</div></div>
+        </div>
+
+        <h2 class="mi-r-section">2. Analytics / التحليلات</h2>
+        <div class="mi-charts">
+          <div class="mi-chart-box"><h3>By Kind / حسب النوع</h3><canvas id="miChartKind"></canvas></div>
+          <div class="mi-chart-box"><h3>By Injury Type / نوع الإصابة</h3><canvas id="miChartType"></canvas></div>
+          <div class="mi-chart-box"><h3>By Project / حسب الموقع</h3><canvas id="miChartProject"></canvas></div>
+          <div class="mi-chart-box"><h3>By Body Part / الجزء المصاب</h3><canvas id="miChartBody"></canvas></div>
+          <div class="mi-chart-box"><h3>By Week of Month / حسب الأسبوع</h3><canvas id="miChartWeek"></canvas></div>
+          <div class="mi-chart-box"><h3>By Cause / السبب</h3><canvas id="miChartCause"></canvas></div>
+        </div>
+
+        <h2 class="mi-r-section">3. Detailed Incident Log / سجل الحوادث التفصيلى</h2>
+        <table class="mi-table">
+          <thead><tr>
+            <th>#</th><th>Date</th><th>Ref #</th><th>Worker / العامل</th><th>Emp ID</th>
+            <th>Project</th><th>Kind</th><th>Injury Type</th><th>Body Part</th>
+          </tr></thead>
+          <tbody>
+            ${injuries.map((i,idx)=>{
+              const kindBadge = i.kind.map(k=>{
+                const cls = k==='first_aid'?'firstaid':(k==='medical_aid'?'medical':'illness');
+                return `<span class="mi-badge ${cls}">${escMI(KIND_LABELS[k]||k)}</span>`;
+              }).join(' ');
+              const types = i.types.filter(t=>t!=='others_injury').map(escMI).join(', ') + (i.otherType?(i.types.length>1?', ':'')+escMI(i.otherType):'');
+              return `<tr>
+                <td>${idx+1}</td>
+                <td>${i.date.toLocaleDateString('en-GB')}</td>
+                <td>${escMI(i.ref)}</td>
+                <td>${escMI(i.name)}</td>
+                <td>${escMI(i.empId)}</td>
+                <td>${escMI(i.project)}</td>
+                <td>${kindBadge||'—'}</td>
+                <td>${types||'—'}</td>
+                <td>${escMI(i.bodyParts.join(', ')||'—')}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+
+        <h2 class="mi-r-section">4. Recommendations &amp; Corrective Actions / التوصيات</h2>
+        <div class="mi-recs">
+          <textarea id="miRecommendations" placeholder="اكتب التوصيات والإجراءات التصحيحية هنا...&#10;Write your recommendations and corrective actions here...">${defaultRecommendations(total, firstAid, medical, illness, byCause)}</textarea>
+        </div>
+
+        <div class="mi-signs">
+          <div class="mi-sign">Site Nursing Specialist / أخصائي تمريض الموقع</div>
+          <div class="mi-sign">HSE Manager / مدير السلامة</div>
+        </div>
+      </div>
+    `;
+    container.innerHTML = html;
+    document.getElementById('miDownloadBtn').style.display='inline-flex';
+    document.getElementById('miPrintBtn').style.display='inline-flex';
+
+    // Render charts
+    setTimeout(()=>{
+      Object.values(miCharts).forEach(c=>{ try{c.destroy();}catch(e){} });
+      miCharts = {};
+      const palette = ['#0f4c75','#3282b8','#00b4d8','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+      const mkPie = (id, data) => {
+        const labels = Object.keys(data), vals = Object.values(data);
+        if (!labels.length) return;
+        miCharts[id] = new Chart(document.getElementById(id), {
+          type:'doughnut',
+          data:{ labels, datasets:[{ data:vals, backgroundColor: palette }] },
+          options:{ responsive:true, maintainAspectRatio:true, plugins:{ legend:{ position:'bottom', labels:{ font:{size:10}, boxWidth:10 } } }, animation:{ duration: 400 } }
+        });
+      };
+      const mkBar = (id, data, color) => {
+        const labels = Object.keys(data), vals = Object.values(data);
+        if (!labels.length) return;
+        miCharts[id] = new Chart(document.getElementById(id), {
+          type:'bar',
+          data:{ labels, datasets:[{ data:vals, backgroundColor: color||'#0f4c75' }] },
+          options:{ responsive:true, maintainAspectRatio:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }, animation:{ duration: 400 } }
+        });
+      };
+      mkPie('miChartKind', byKind);
+      mkPie('miChartType', byType);
+      mkBar('miChartProject', byProject, '#3282b8');
+      mkPie('miChartBody', byBodyPart);
+      mkBar('miChartWeek', byWeek, '#f59e0b');
+      mkPie('miChartCause', byCause);
+    }, 50);
+  }
+
+  function defaultRecommendations(total, firstAid, medical, illness, byCause){
+    const lines = [];
+    if (total > 0){
+      lines.push('• مراجعة إجراءات السلامة فى المواقع التى شهدت إصابات هذا الشهر.');
+      lines.push('• إعادة التدريب على الـ PPE للعمال المتأثرين.');
+    }
+    if (medical + illness > 0){
+      lines.push('• تكثيف الفحوصات الطبية الدورية وخاصةً للعمال فى الأنشطة عالية الخطورة.');
+    }
+    const topCause = Object.entries(byCause).sort((a,b)=>b[1]-a[1])[0];
+    if (topCause){
+      lines.push(`• السبب الرئيسى المتكرر: "${topCause[0]}" (${topCause[1]} حالة) — وضع خطة تصحيحية محددة.`);
+    }
+    if (lines.length === 0) lines.push('• الاستمرار فى تطبيق إجراءات السلامة الحالية.');
+    return lines.join('\n');
+  }
+
+  window.generateMonthlyInjuryReport = function(){
+    const v = document.getElementById('miMonth').value;
+    if (!v) { alert('Please select a month / من فضلك اختر الشهر'); return; }
+    const [y,m] = v.split('-').map(Number);
+    const projectFilter = document.getElementById('miProject').value || '';
+    const injuries = collectInjuries(y, m-1, projectFilter);
+    buildReport(injuries, y, m-1, projectFilter);
+  };
+
+  window.downloadMonthlyInjuryReport = function(){
+    const el = document.getElementById('miPrintArea');
+    if (!el) { alert('Generate the report first / أنشئ التقرير أولاً'); return; }
+    // Sync textarea value into the DOM so html2pdf captures it
+    const ta = document.getElementById('miRecommendations');
+    if (ta) ta.textContent = ta.value;
+    const v = document.getElementById('miMonth').value || 'report';
+    const opt = {
+      margin: [10,10,10,10],
+      filename: `Monthly-Injury-Report-${v}.pdf`,
+      image: { type:'jpeg', quality:0.95 },
+      html2canvas: { scale:2, useCORS:true, backgroundColor:'#ffffff' },
+      jsPDF: { unit:'mm', format:'a4', orientation:'portrait' },
+      pagebreak: { mode:['css','legacy'], avoid:['.mi-chart-box','.mi-kpi','tr'] }
+    };
+    if (typeof html2pdf === 'undefined'){ alert('PDF library not loaded.'); return; }
+    html2pdf().set(opt).from(el).save();
+  };
+})();
+</script>
+
 </body>
 </html>
+
