@@ -7962,57 +7962,71 @@ window.YMCO_showSplash = function(){
         }
 
         async function cloudBackup() {
-            if (!window.lovableCloud) { alert('⏳ Cloud not ready yet, please wait a moment and try again.'); return; }
+            if (!window.firebaseDB || !window.firebaseRef || !window.firebasePush || !window.firebaseSet) {
+                alert('⏳ Firebase not ready yet. Please make sure you are logged in and try again.');
+                return;
+            }
             const label = prompt('Optional label for this backup (e.g. "Before update 2026-05-12"):', new Date().toISOString().slice(0,16).replace('T',' '));
             if (label === null) return; // user cancelled
             try {
                 const { payload, counts } = _collectPayload();
-                const { data, error } = await window.lovableCloud
-                    .from('ymco_snapshots')
-                    .insert({
-                        client_id: window.lovableCloudClientId,
-                        label: label || null,
-                        payload,
-                        counts
-                    })
-                    .select()
-                    .single();
-                if (error) throw error;
-                console.log('Cloud backup saved:', data);
-                alert(`☁️ Backup saved to Cloud\n\nWorkers: ${counts.workers}\nPhysical: ${counts.physical}\nClinic: ${counts.clinic}\nInjury: ${counts.injury}\n\nID: ${data.id.slice(0,8)}...`);
+                const cid = window.lovableCloudClientId || localStorage.getItem('ymco_cloud_client_id') || 'default';
+                const backupsRef = window.firebaseRef(window.firebaseDB, 'backups/' + cid);
+                const newRef = window.firebasePush(backupsRef);
+                const record = {
+                    label: label || null,
+                    created_at: new Date().toISOString(),
+                    created_at_ms: Date.now(),
+                    counts: counts,
+                    payload: payload
+                };
+                await window.firebaseSet(newRef, record);
+                const id = (newRef.key || '').toString();
+                console.log('Cloud backup saved to Firebase:', id, counts);
+                alert('☁️ Backup saved to Cloud\n\nWorkers: ' + counts.workers + '\nPhysical: ' + counts.physical + '\nClinic: ' + counts.clinic + '\nInjury: ' + counts.injury + '\n\nID: ' + id.slice(0,12) + '...');
             } catch (err) {
                 console.error('Cloud backup failed:', err);
-                alert('❌ Cloud backup failed:\n' + (err.message || err));
+                const msg = (err && (err.message || err.code)) || err;
+                alert('❌ Cloud backup failed:\n' + msg + '\n\nTip: make sure you are logged in (Firebase rules require auth).');
             }
         }
 
         async function cloudRestore() {
-            if (!window.lovableCloud) { alert('⏳ Cloud not ready yet, please wait a moment and try again.'); return; }
+            if (!window.firebaseDB || !window.firebaseRef || !window.firebaseGet) {
+                alert('⏳ Firebase not ready yet. Please make sure you are logged in and try again.');
+                return;
+            }
             try {
-                const { data, error } = await window.lovableCloud
-                    .from('ymco_snapshots')
-                    .select('id,label,counts,created_at')
-                    .eq('client_id', window.lovableCloudClientId)
-                    .order('created_at', { ascending: false })
-                    .limit(20);
-                if (error) throw error;
-                if (!data || data.length === 0) { alert('No cloud backups found for this browser.'); return; }
-                const list = data.map((r, i) => {
+                const cid = window.lovableCloudClientId || localStorage.getItem('ymco_cloud_client_id') || 'default';
+                const backupsRef = window.firebaseRef(window.firebaseDB, 'backups/' + cid);
+                const snapshot = await window.firebaseGet(backupsRef);
+                const val = snapshot && snapshot.val ? snapshot.val() : null;
+                if (!val) { alert('No cloud backups found for this browser.'); return; }
+                const entries = Object.keys(val).map(k => {
+                    const r = val[k] || {};
+                    return {
+                        id: k,
+                        label: r.label || null,
+                        counts: r.counts || {},
+                        created_at: r.created_at || null,
+                        created_at_ms: r.created_at_ms || (r.created_at ? Date.parse(r.created_at) : 0)
+                    };
+                }).sort((a,b) => (b.created_at_ms||0) - (a.created_at_ms||0)).slice(0, 20);
+                if (entries.length === 0) { alert('No cloud backups found for this browser.'); return; }
+                const list = entries.map((r, i) => {
                     const c = r.counts || {};
-                    const date = new Date(r.created_at).toLocaleString();
-                    return `${i+1}. [${date}] ${r.label || '(no label)'} — W:${c.workers||0} P:${c.physical||0} C:${c.clinic||0} I:${c.injury||0}`;
+                    const date = r.created_at ? new Date(r.created_at).toLocaleString() : '(unknown date)';
+                    return (i+1) + '. [' + date + '] ' + (r.label || '(no label)') + ' — W:' + (c.workers||0) + ' P:' + (c.physical||0) + ' C:' + (c.clinic||0) + ' I:' + (c.injury||0);
                 }).join('\n');
-                const choice = prompt(`Select a backup to restore (1-${data.length}):\n\n${list}\n\n⚠️ This will REPLACE all current data!`, '1');
+                const choice = prompt('Select a backup to restore (1-' + entries.length + '):\n\n' + list + '\n\n⚠️ This will REPLACE all current data!', '1');
                 if (choice === null) return;
                 const idx = parseInt(choice, 10) - 1;
-                if (isNaN(idx) || idx < 0 || idx >= data.length) { alert('Invalid selection.'); return; }
-                if (!confirm(`Really restore "${data[idx].label || '(no label)'}" and overwrite current data?`)) return;
-                const { data: full, error: fetchErr } = await window.lovableCloud
-                    .from('ymco_snapshots')
-                    .select('payload,counts,label')
-                    .eq('id', data[idx].id)
-                    .single();
-                if (fetchErr) throw fetchErr;
+                if (isNaN(idx) || idx < 0 || idx >= entries.length) { alert('Invalid selection.'); return; }
+                if (!confirm('Really restore "' + (entries[idx].label || '(no label)') + '" and overwrite current data?')) return;
+                const fullRef = window.firebaseRef(window.firebaseDB, 'backups/' + cid + '/' + entries[idx].id);
+                const fullSnap = await window.firebaseGet(fullRef);
+                const full = (fullSnap && fullSnap.val) ? fullSnap.val() : null;
+                if (!full) throw new Error('Selected backup not found.');
                 const p = full.payload || {};
                 if (Array.isArray(p.workers)) {
                     if (typeof workers !== 'undefined') workers = p.workers;
@@ -8031,13 +8045,15 @@ window.YMCO_showSplash = function(){
                     localStorage.setItem('workerInjuryReports', JSON.stringify(p.workerInjuryReports));
                 }
                 const c = full.counts || {};
-                alert(`✅ Restored from Cloud\n\nWorkers: ${c.workers||0}\nPhysical: ${c.physical||0}\nClinic: ${c.clinic||0}\nInjury: ${c.injury||0}\n\nReloading page...`);
+                alert('✅ Restored from Cloud\n\nWorkers: ' + (c.workers||0) + '\nPhysical: ' + (c.physical||0) + '\nClinic: ' + (c.clinic||0) + '\nInjury: ' + (c.injury||0) + '\n\nReloading page...');
                 setTimeout(() => location.reload(), 600);
             } catch (err) {
                 console.error('Cloud restore failed:', err);
-                alert('❌ Cloud restore failed:\n' + (err.message || err));
+                const msg = (err && (err.message || err.code)) || err;
+                alert('❌ Cloud restore failed:\n' + msg);
             }
         }
+
 
         function exportJSON() {
             try {
