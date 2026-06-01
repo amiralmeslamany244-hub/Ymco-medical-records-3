@@ -13314,48 +13314,68 @@ function viewIdPhotoFull() {
             const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ID Card - ${w.name}</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',Arial,sans-serif;}
-  body{background:#eef2f7;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;}
+  body{background:#f1f5f9;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;min-height:100vh;}
   .toolbar{display:flex;gap:10px;}
   .toolbar button{padding:10px 22px;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;letter-spacing:.5px;}
-  .btn-print{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#c9a84c;}
+  .btn-print{background:linear-gradient(135deg,#1e40af,#2563eb);color:#fff;box-shadow:0 6px 14px -4px rgba(37,99,235,.5);}
   .btn-close{background:#64748b;color:#fff;}
-  .card{width:360px;height:570px;background:#fff;border:1px solid #e8e0d0;border-radius:18px;overflow:hidden;
-    box-shadow:0 25px 50px -12px rgba(15,23,42,.28);display:flex;flex-direction:column;position:relative;
+
+  /* Card — design #4 (white minimal + blue right strip) */
+  .card{width:360px;height:570px;background:#ffffff;border-radius:18px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;
+    box-shadow:0 30px 60px -20px rgba(15,23,42,.35), 0 0 0 1px rgba(15,23,42,.05);
     -webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .card *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
-  .hd{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;padding:22px 22px 20px;position:relative;}
-  .hd::after{content:"";position:absolute;bottom:0;left:0;right:0;height:4px;
-    background:linear-gradient(90deg,#c9a84c 0%,#f0d78c 50%,#c9a84c 100%);}
-  .crown{display:flex;justify-content:space-between;align-items:center;}
-  .mk{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#f0d78c);
-    display:flex;align-items:center;justify-content:center;color:#1a1a2e;font-weight:900;font-size:18px;
-    box-shadow:0 4px 10px rgba(201,168,76,.4);}
-  .meta{text-align:right;}
-  .meta .l{font-size:8px;letter-spacing:2px;color:#c9a84c;font-weight:700;}
-  .meta .v{font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:2px;font-weight:700;}
-  .ti{margin-top:16px;font-family:'Playfair Display',serif;font-size:18px;font-weight:700;letter-spacing:.5px;}
-  .sb{font-size:9px;letter-spacing:3px;color:#c9a84c;margin-top:3px;font-weight:600;text-transform:uppercase;}
-  .body{padding:20px 22px 12px;text-align:center;}
-  .av{width:104px;height:104px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#16213e);
-    display:flex;align-items:center;justify-content:center;color:#c9a84c;font-size:44px;margin:0 auto;
-    border:3px solid #c9a84c;box-shadow:0 8px 20px -6px rgba(201,168,76,.45);}
-  .nm{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-top:14px;color:#1a1a2e;line-height:1.15;}
-  .ornament{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:8px;color:#c9a84c;}
-  .ornament::before,.ornament::after{content:"";flex:1;max-width:38px;height:1px;background:#c9a84c;}
-  .ornament span{font-size:10px;letter-spacing:2.5px;font-weight:800;text-transform:uppercase;}
-  .dp{font-size:10px;color:#64748b;margin-top:6px;letter-spacing:1.2px;font-weight:600;}
-  .info{margin:14px 22px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  .c{background:#faf7ef;border:1px solid #e8e0d0;border-radius:8px;padding:7px 10px;}
-  .c .k{font-size:8px;letter-spacing:1.5px;color:#c9a84c;font-weight:800;text-transform:uppercase;}
-  .c .v{font-size:11px;font-weight:800;color:#1a1a2e;margin-top:1px;font-family:'JetBrains Mono',monospace;}
-  .ft{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding:12px 22px;background:#1a1a2e;color:#c9a84c;}
-  .qr{width:54px;height:54px;background:#fff;color:#1a1a2e;display:flex;align-items:center;justify-content:center;border-radius:6px;padding:4px;}
+  .card::after{content:"";position:absolute;top:0;right:0;width:46px;height:100%;
+    background:linear-gradient(180deg,#2563eb 0%,#1e40af 100%);}
+  .lanyard{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:60px;height:8px;
+    background:#e2e8f0;border-radius:4px;z-index:2;}
+
+  .hd{padding:36px 60px 8px 26px;display:flex;align-items:center;gap:12px;}
+  .logo{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#2563eb,#1e40af);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;
+    box-shadow:0 6px 14px -4px rgba(37,99,235,.5);}
+  .brand{display:flex;flex-direction:column;}
+  .brand .bn{font-size:15px;font-weight:800;color:#0f172a;letter-spacing:.3px;line-height:1;}
+  .brand .bs{font-size:8px;font-weight:600;color:#64748b;letter-spacing:3px;margin-top:3px;text-transform:uppercase;}
+
+  /* 3D icon avatar (replaces photo) */
+  .av-wrap{margin:18px auto 0;width:150px;height:150px;border-radius:50%;position:relative;
+    background:radial-gradient(circle at 30% 28%, #ffffff 0%, #e0e7ff 35%, #93c5fd 70%, #2563eb 100%);
+    box-shadow:
+      inset 0 -14px 28px rgba(30,64,175,.45),
+      inset 0 14px 22px rgba(255,255,255,.85),
+      0 22px 40px -12px rgba(37,99,235,.55),
+      0 0 0 4px #ffffff,
+      0 0 0 5px #dbeafe;}
+  .av-wrap::before{content:"";position:absolute;top:10%;left:18%;width:42%;height:24%;border-radius:50%;
+    background:radial-gradient(ellipse at center,rgba(255,255,255,.85),rgba(255,255,255,0) 70%);
+    filter:blur(2px);pointer-events:none;}
+  .av-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:#0f172a;font-size:64px;
+    text-shadow:0 2px 0 rgba(255,255,255,.6), 0 8px 14px rgba(30,64,175,.55), 0 -2px 0 rgba(30,64,175,.25);}
+
+  .nm{font-size:23px;font-weight:800;margin-top:18px;color:#0f172a;text-align:center;line-height:1.15;padding:0 60px 0 26px;letter-spacing:.2px;}
+  .rl{font-size:12px;font-weight:600;color:#2563eb;text-align:center;margin-top:4px;padding:0 60px 0 26px;letter-spacing:1.5px;text-transform:uppercase;}
+  .accent-bar{width:46px;height:3px;background:#2563eb;border-radius:2px;margin:10px auto 0;margin-right:calc(50% - 23px + 17px);}
+
+  .info{margin:16px 60px 0 26px;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:11px;}
+  .info .k{color:#64748b;font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;align-self:center;}
+  .info .v{color:#0f172a;font-weight:700;font-family:'JetBrains Mono',monospace;}
+
+  .ft{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding:14px 60px 14px 26px;border-top:1px solid #e2e8f0;}
+  .qr{width:54px;height:54px;background:#fff;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid #e2e8f0;padding:3px;}
   .qr > div{width:46px!important;height:46px!important;}
   .qr img,.qr canvas{width:46px!important;height:46px!important;}
-  .seal{font-size:9px;letter-spacing:2px;font-weight:800;text-align:right;line-height:1.6;}
+  .chip{width:36px;height:26px;border-radius:5px;background:linear-gradient(135deg,#fbbf24,#d97706);
+    position:relative;box-shadow:inset 0 -2px 4px rgba(0,0,0,.25), inset 0 2px 3px rgba(255,255,255,.5);}
+  .chip::before,.chip::after{content:"";position:absolute;left:4px;right:4px;height:1px;background:rgba(0,0,0,.35);}
+  .chip::before{top:8px;} .chip::after{top:16px;}
+  .seal{font-size:8px;letter-spacing:1.5px;font-weight:800;color:#1e40af;text-align:right;line-height:1.5;}
+
   @media print{body{background:#fff;padding:0;}.toolbar{display:none;}.card{box-shadow:none;}@page{size:auto;margin:6mm;}}
 </style></head><body>
   <div class="toolbar">
@@ -13363,33 +13383,30 @@ function viewIdPhotoFull() {
     <button class="btn-close" onclick="window.close()">Close</button>
   </div>
   <div class="card">
+    <div class="lanyard"></div>
     <div class="hd">
-      <div class="crown">
-        <div class="mk">Y</div>
-        <div class="meta"><div class="l">CARD NO.</div><div class="v">${w.id}</div></div>
-      </div>
-      <div class="ti">${(w.company||'YMCO Construction')}</div>
-      <div class="sb">— Official Employee Pass —</div>
+      <div class="logo">Y</div>
+      <div class="brand"><div class="bn">${(w.company||'YMCO')}</div><div class="bs">Official Pass</div></div>
     </div>
-    <div class="body">
-      <div class="av"><i class="fas ${ic}"></i></div>
-      <div class="nm">${w.name}</div>
-      <div class="ornament"><span>${w.role||'WORKER'}</span></div>
-      <div class="dp">${(w.department||'').toUpperCase()}</div>
-    </div>
+    <div class="av-wrap"><div class="av-icon"><i class="fas ${ic}"></i></div></div>
+    <div class="nm">${w.name}</div>
+    <div class="rl">${w.role||'Worker'}</div>
+    <div class="accent-bar"></div>
     <div class="info">
-      <div class="c"><div class="k">Nationality</div><div class="v">${w.nationality||'—'}</div></div>
-      <div class="c"><div class="k">Project</div><div class="v">${w.project||'—'}</div></div>
-      <div class="c"><div class="k">Issued</div><div class="v">${issueDate}</div></div>
-      <div class="c"><div class="k">Expires</div><div class="v">${expiryDate}</div></div>
+      <div class="k">ID</div><div class="v">${w.id}</div>
+      <div class="k">Dept</div><div class="v">${(w.department||'—')}</div>
+      <div class="k">Project</div><div class="v">${w.project||'—'}</div>
+      <div class="k">Issued</div><div class="v">${issueDate}</div>
+      <div class="k">Expires</div><div class="v">${expiryDate}</div>
     </div>
     <div class="ft">
       <div class="qr"><div id="qr"></div></div>
-      <div class="seal">★ OFFICIAL SEAL ★<br>YMCO AUTHORIZED</div>
+      <div class="chip"></div>
+      <div class="seal">YMCO<br>AUTHORIZED</div>
     </div>
   </div>
 <script>
-  try { new QRCode(document.getElementById("qr"), {text:String(${JSON.stringify(String(w.id))}),width:46,height:46,colorDark:"#1a1a2e",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H}); } catch(e){}
+  try { new QRCode(document.getElementById("qr"), {text:String(${JSON.stringify(String(w.id))}),width:46,height:46,colorDark:"#1e40af",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H}); } catch(e){}
 <\/script>
 </body></html>`;
             win.document.open();
@@ -13552,29 +13569,26 @@ function viewIdPhotoFull() {
                 const qrId = 'qr_' + String(w.id).replace(/[^a-zA-Z0-9_-]/g,'_');
                 return `
                 <div class="card" data-qr-id="${qrId}" data-qr-text="${String(w.id).replace(/"/g,'&quot;')}">
+                  <div class="lanyard"></div>
                   <div class="hd">
-                    <div class="crown">
-                      <div class="mk">Y</div>
-                      <div class="meta"><div class="l">CARD NO.</div><div class="v">${w.id}</div></div>
-                    </div>
-                    <div class="ti">${(w.company||'YMCO Construction')}</div>
-                    <div class="sb">— Official Employee Pass —</div>
+                    <div class="logo">Y</div>
+                    <div class="brand"><div class="bn">${(w.company||'YMCO')}</div><div class="bs">Official Pass</div></div>
                   </div>
-                  <div class="body">
-                    <div class="av"><i class="fas ${ic}"></i></div>
-                    <div class="nm">${w.name||''}</div>
-                    <div class="ornament"><span>${w.role||'WORKER'}</span></div>
-                    <div class="dp">${(w.department||'').toUpperCase()}</div>
-                  </div>
+                  <div class="av-wrap"><div class="av-icon"><i class="fas ${ic}"></i></div></div>
+                  <div class="nm">${w.name||''}</div>
+                  <div class="rl">${w.role||'Worker'}</div>
+                  <div class="accent-bar"></div>
                   <div class="info">
-                    <div class="c"><div class="k">Nationality</div><div class="v">${w.nationality||'—'}</div></div>
-                    <div class="c"><div class="k">Project</div><div class="v">${w.project||'—'}</div></div>
-                    <div class="c"><div class="k">Issued</div><div class="v">${issueDate}</div></div>
-                    <div class="c"><div class="k">Expires</div><div class="v">${expiryDate}</div></div>
+                    <div class="k">ID</div><div class="v">${w.id}</div>
+                    <div class="k">Dept</div><div class="v">${(w.department||'—')}</div>
+                    <div class="k">Project</div><div class="v">${w.project||'—'}</div>
+                    <div class="k">Issued</div><div class="v">${issueDate}</div>
+                    <div class="k">Expires</div><div class="v">${expiryDate}</div>
                   </div>
                   <div class="ft">
                     <div class="qr"><div id="${qrId}"></div></div>
-                    <div class="seal">★ OFFICIAL SEAL ★<br>YMCO AUTHORIZED</div>
+                    <div class="chip"></div>
+                    <div class="seal">YMCO<br>AUTHORIZED</div>
                   </div>
                 </div>`;
             }).join('');
@@ -13592,35 +13606,38 @@ function viewIdPhotoFull() {
   .btn-close{background:#475569;color:#fff;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:26px;justify-items:center;}
 
-  .card{width:360px;height:570px;background:#fff;border:1px solid #e8e0d0;border-radius:18px;overflow:hidden;
-    box-shadow:0 25px 50px -12px rgba(15,23,42,.28);display:flex;flex-direction:column;position:relative;
+  .card{width:360px;height:570px;background:#ffffff;border-radius:18px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;
+    box-shadow:0 30px 60px -20px rgba(15,23,42,.35), 0 0 0 1px rgba(15,23,42,.05);
     -webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .card *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
-  .hd{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;padding:22px 22px 20px;position:relative;}
-  .hd::after{content:"";position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#c9a84c 0%,#f0d78c 50%,#c9a84c 100%);}
-  .crown{display:flex;justify-content:space-between;align-items:center;}
-  .mk{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#f0d78c);display:flex;align-items:center;justify-content:center;color:#1a1a2e;font-weight:900;font-size:18px;box-shadow:0 4px 10px rgba(201,168,76,.4);}
-  .meta{text-align:right;}
-  .meta .l{font-size:8px;letter-spacing:2px;color:#c9a84c;font-weight:700;}
-  .meta .v{font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:2px;font-weight:700;}
-  .ti{margin-top:16px;font-family:'Playfair Display',serif;font-size:18px;font-weight:700;letter-spacing:.5px;}
-  .sb{font-size:9px;letter-spacing:3px;color:#c9a84c;margin-top:3px;font-weight:600;text-transform:uppercase;}
-  .body{padding:20px 22px 12px;text-align:center;}
-  .av{width:104px;height:104px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;color:#c9a84c;font-size:44px;margin:0 auto;border:3px solid #c9a84c;box-shadow:0 8px 20px -6px rgba(201,168,76,.45);}
-  .nm{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;margin-top:14px;color:#1a1a2e;line-height:1.15;}
-  .ornament{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:8px;color:#c9a84c;}
-  .ornament::before,.ornament::after{content:"";flex:1;max-width:38px;height:1px;background:#c9a84c;}
-  .ornament span{font-size:10px;letter-spacing:2.5px;font-weight:800;text-transform:uppercase;}
-  .dp{font-size:10px;color:#64748b;margin-top:6px;letter-spacing:1.2px;font-weight:600;}
-  .info{margin:14px 22px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  .c{background:#faf7ef;border:1px solid #e8e0d0;border-radius:8px;padding:7px 10px;}
-  .c .k{font-size:8px;letter-spacing:1.5px;color:#c9a84c;font-weight:800;text-transform:uppercase;}
-  .c .v{font-size:11px;font-weight:800;color:#1a1a2e;margin-top:1px;font-family:'JetBrains Mono',monospace;}
-  .ft{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding:12px 22px;background:#1a1a2e;color:#c9a84c;}
-  .qr{width:54px;height:54px;background:#fff;color:#1a1a2e;display:flex;align-items:center;justify-content:center;border-radius:6px;padding:4px;}
+  .card::after{content:"";position:absolute;top:0;right:0;width:46px;height:100%;
+    background:linear-gradient(180deg,#2563eb 0%,#1e40af 100%);}
+  .lanyard{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:60px;height:8px;background:#e2e8f0;border-radius:4px;z-index:2;}
+  .hd{padding:36px 60px 8px 26px;display:flex;align-items:center;gap:12px;}
+  .logo{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#2563eb,#1e40af);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;box-shadow:0 6px 14px -4px rgba(37,99,235,.5);}
+  .brand{display:flex;flex-direction:column;}
+  .brand .bn{font-size:15px;font-weight:800;color:#0f172a;letter-spacing:.3px;line-height:1;}
+  .brand .bs{font-size:8px;font-weight:600;color:#64748b;letter-spacing:3px;margin-top:3px;text-transform:uppercase;}
+  .av-wrap{margin:18px auto 0;width:150px;height:150px;border-radius:50%;position:relative;
+    background:radial-gradient(circle at 30% 28%, #ffffff 0%, #e0e7ff 35%, #93c5fd 70%, #2563eb 100%);
+    box-shadow:inset 0 -14px 28px rgba(30,64,175,.45),inset 0 14px 22px rgba(255,255,255,.85),0 22px 40px -12px rgba(37,99,235,.55),0 0 0 4px #ffffff,0 0 0 5px #dbeafe;}
+  .av-wrap::before{content:"";position:absolute;top:10%;left:18%;width:42%;height:24%;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,255,255,.85),rgba(255,255,255,0) 70%);filter:blur(2px);pointer-events:none;}
+  .av-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#0f172a;font-size:64px;text-shadow:0 2px 0 rgba(255,255,255,.6),0 8px 14px rgba(30,64,175,.55),0 -2px 0 rgba(30,64,175,.25);}
+  .nm{font-size:22px;font-weight:800;margin-top:18px;color:#0f172a;text-align:center;line-height:1.15;padding:0 60px 0 26px;letter-spacing:.2px;}
+  .rl{font-size:11px;font-weight:600;color:#2563eb;text-align:center;margin-top:4px;padding:0 60px 0 26px;letter-spacing:1.5px;text-transform:uppercase;}
+  .accent-bar{width:46px;height:3px;background:#2563eb;border-radius:2px;margin:10px auto 0;margin-right:calc(50% - 23px + 17px);}
+  .info{margin:16px 60px 0 26px;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:11px;}
+  .info .k{color:#64748b;font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;align-self:center;}
+  .info .v{color:#0f172a;font-weight:700;font-family:'JetBrains Mono',monospace;}
+  .ft{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding:14px 60px 14px 26px;border-top:1px solid #e2e8f0;}
+  .qr{width:54px;height:54px;background:#fff;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid #e2e8f0;padding:3px;}
   .qr > div{width:46px!important;height:46px!important;}
   .qr img,.qr canvas{width:46px!important;height:46px!important;}
-  .seal{font-size:9px;letter-spacing:2px;font-weight:800;text-align:right;line-height:1.6;}
+  .chip{width:36px;height:26px;border-radius:5px;background:linear-gradient(135deg,#fbbf24,#d97706);position:relative;box-shadow:inset 0 -2px 4px rgba(0,0,0,.25),inset 0 2px 3px rgba(255,255,255,.5);}
+  .chip::before,.chip::after{content:"";position:absolute;left:4px;right:4px;height:1px;background:rgba(0,0,0,.35);}
+  .chip::before{top:8px;} .chip::after{top:16px;}
+  .seal{font-size:8px;letter-spacing:1.5px;font-weight:800;color:#1e40af;text-align:right;line-height:1.5;}
 
   @media print{
     html,body{background:#fff !important;padding:0 !important;margin:0 !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
@@ -13637,7 +13654,7 @@ function viewIdPhotoFull() {
   <div class="grid">${cardsHtml}</div>
 <script>
   document.querySelectorAll('.card').forEach(function(card){
-    try { new QRCode(card.querySelector('.qr > div'), {text:card.getAttribute('data-qr-text'),width:46,height:46,colorDark:"#1a1a2e",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H}); } catch(e){}
+    try { new QRCode(card.querySelector('.qr > div'), {text:card.getAttribute('data-qr-text'),width:46,height:46,colorDark:"#1e40af",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H}); } catch(e){}
   });
 <\/script>
 </body></html>`;
