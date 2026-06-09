@@ -7606,7 +7606,71 @@ window.YMCO_showSplash = function(){
         #injuryModal #injuryImagePanel::before,
         #injuryModal #injuryImagePanelBack::before,
         #injuryModal .photo-upload-grid::before { content: none !important; display: none !important; }
+
+        /* Ensure YES/NO radio selection is visible in Print & PDF (html2canvas strips native form styling) */
+
+        .pdf-capture .radio-label input[type="radio"],
+        .pdf-capture .radio-label input[type="radio"]:disabled {
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            width: 16px !important;
+            height: 16px !important;
+            border: 1.5px solid #7f1d1d !important;
+            border-radius: 50% !important;
+            background: #fff !important;
+            position: relative !important;
+            display: inline-block !important;
+            vertical-align: middle !important;
+            box-shadow: none !important;
+            opacity: 1 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .pdf-capture .radio-label input[type="radio"]:checked,
+        .pdf-capture .radio-label input[type="radio"]:disabled:checked {
+            border-color: #7f1d1d !important;
+            background: #7f1d1d !important;
+            background-image: none !important;
+            box-shadow: none !important;
+        }
+        .pdf-capture .radio-label:has(input[type="radio"]:checked) {
+            background: rgba(127,29,29,0.12) !important;
+            font-weight: 700 !important;
+            color: #7f1d1d !important;
+        }
+        @media print {
+            .radio-label input[type="radio"],
+            .radio-label input[type="radio"]:disabled {
+                -webkit-appearance: none !important;
+                appearance: none !important;
+                width: 16px !important;
+                height: 16px !important;
+                border: 1.5px solid #7f1d1d !important;
+                border-radius: 50% !important;
+                background: #fff !important;
+                position: relative !important;
+                display: inline-block !important;
+                vertical-align: middle !important;
+                box-shadow: none !important;
+                opacity: 1 !important;
+                accent-color: #7f1d1d !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .radio-label input[type="radio"]:checked,
+            .radio-label input[type="radio"]:disabled:checked {
+                background: #7f1d1d !important;
+                background-image: none !important;
+                border-color: #7f1d1d !important;
+                box-shadow: none !important;
+            }
+            .radio-label:has(input[type="radio"]:checked) {
+                font-weight: 700 !important;
+                color: #7f1d1d !important;
+            }
+        }
     </style>
+
 
     <!-- Occupational Injury and Illness Report Modal -->
     <div id="injuryModal" class="modal-overlay" lang="en">
@@ -10324,6 +10388,33 @@ window.YMCO_showSplash = function(){
         }
         function _clinicPrintCSS() {
             return (
+              /* ============================================================
+                 BULLETPROOF CLINIC PRINT BASE
+                 Forces every element inside the cloned #clinicModal to be
+                 visible with high-contrast hex colors. Mobile/Android print
+                 spoolers and older PDF engines silently drop content styled
+                 with CSS variables that are not in the inherited cascade,
+                 with `opacity:0`/`visibility:hidden` from animations, or
+                 with backdrop-filter/transform on the modal-overlay. This
+                 block neutralizes all of those at once.
+                 ============================================================ */
+              '#clinicModal,#clinicModal *{visibility:visible !important;opacity:1 !important;transform:none !important;filter:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;animation:none !important;}' +
+              '#clinicModal{display:block !important;position:static !important;background:transparent !important;width:100% !important;max-width:100% !important;height:auto !important;max-height:none !important;overflow:visible !important;}' +
+              '#clinicModal .modal-container{display:block !important;position:static !important;background:#fff !important;color:#0f172a !important;width:100% !important;max-width:100% !important;height:auto !important;max-height:none !important;overflow:visible !important;box-shadow:none !important;border:none !important;margin:0 !important;}' +
+              '#clinicModal .modal-body{display:block !important;height:auto !important;max-height:none !important;overflow:visible !important;padding:0 !important;}' +
+              '#clinicModal .section{display:block !important;margin-bottom:14px !important;background:#fff !important;border:1px solid #d8e1ea !important;border-radius:10px !important;overflow:visible !important;}' +
+              '#clinicModal .section-title{display:flex !important;align-items:center !important;gap:8px !important;background:#eef4f9 !important;color:#0f4c75 !important;padding:10px 16px !important;font-weight:700 !important;font-size:13px !important;border-bottom:1px solid #d8e1ea !important;}' +
+              '#clinicModal .section-content{display:block !important;padding:14px !important;background:#fff !important;}' +
+              '#clinicModal .vital-grid{display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:10px !important;}' +
+              '#clinicModal .vital-item{display:flex !important;flex-direction:column !important;background:#f8fafc !important;border:1px solid #e2e8f0 !important;border-radius:10px !important;padding:10px !important;text-align:center !important;color:#0f172a !important;}' +
+              '#clinicModal .vital-item label{display:block !important;color:#475569 !important;font-size:10.5px !important;font-weight:700 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;margin-bottom:6px !important;}' +
+              '#clinicModal .vital-item input,#clinicModal .vital-item select,#clinicModal .vital-item textarea{display:block !important;width:100% !important;background:#ffffff !important;color:#0f172a !important;-webkit-text-fill-color:#0f172a !important;border:1px solid #cbd5e1 !important;border-radius:6px !important;padding:8px 10px !important;font-size:13px !important;font-weight:700 !important;text-align:center !important;margin-bottom:6px !important;opacity:1 !important;visibility:visible !important;box-shadow:none !important;}' +
+              '#clinicModal input,#clinicModal select,#clinicModal textarea{color:#0f172a !important;-webkit-text-fill-color:#0f172a !important;background:#ffffff !important;border:1px solid #cbd5e1 !important;opacity:1 !important;visibility:visible !important;display:block !important;}' +
+              '#clinicModal label{color:#0f4c75 !important;display:block !important;opacity:1 !important;visibility:visible !important;}' +
+              '#clinicModal h1,#clinicModal h2,#clinicModal h3,#clinicModal h4,#clinicModal h5,#clinicModal h6{color:#0f172a !important;opacity:1 !important;visibility:visible !important;display:block !important;}' +
+              '#clinicModal table,#clinicModal td,#clinicModal th{color:#0f172a !important;border-color:#d8e1ea !important;}' +
+              /* Make sure the AI helper buttons / loaders never render */
+              '#clinicModal .ai-vitals-btn-wrap,#clinicModal .ai-vitals-btn-wrap-clinic,#clinicModal .save-load-section,#clinicModal .action-buttons,#clinicModal .close-modal-btn{display:none !important;}' +
               /* --- Hide the live modal chrome inside the print clone --- */
               '#clinicModal .modal-header{display:none !important;}' +
               /* --- Cover band --- */
@@ -10377,6 +10468,44 @@ window.YMCO_showSplash = function(){
               '@media print{.clinic-print-cover{margin-top:0 !important;}}' +
               /* Hide AI helper / interactive widgets */
               '#clinicModal .ai-vitals-btn-wrap,#clinicModal .ai-vitals-btn-wrap-clinic,.pdf-capture #clinicModal .ai-vitals-btn-wrap,.pdf-capture #clinicModal .ai-vitals-btn-wrap-clinic{display:none !important;}' +
+              /* ============================================================
+                 EXACTLY 3 PAGES FOR SITE CLINIC REPORT
+                 Page 1 : Cover + Personnel Details
+                 Page 2 : Vital Signs + Medical History
+                 Page 3 : Current Issue + Signatures
+                 We let sections flow (no global avoid) and force page-break
+                 only before the sections that start pages 2 and 3 via the
+                 helper class `.cpb-page` added in _buildPrintHTML.
+                 ============================================================ */
+              '@media print{' +
+                /* CRITICAL: also drop overflow:hidden — Chrome treats elements
+                   with overflow:hidden as atomic and refuses to split them across
+                   pages even when break-inside:auto is set. */
+                '#clinicModal .clinic-section,.pdf-capture #clinicModal .clinic-section{page-break-inside:auto !important;break-inside:auto !important;overflow:visible !important;margin-bottom:8px !important;box-shadow:none !important;border-radius:10px !important;}' +
+                /* Allow Chrome to start a new section anywhere on a page —
+                   removes the "avoid-page" hint that was pushing Medical History
+                   to a fresh page when Vital Signs left room. */
+                '#clinicModal .clinic-section-header,.pdf-capture #clinicModal .clinic-section-header,#clinicModal .clinic-section *,.pdf-capture #clinicModal .clinic-section *{page-break-after:auto !important;break-after:auto !important;page-break-before:auto !important;break-before:auto !important;}' +
+                /* Only atomic small fields stay un-split (vital-item, single form row) */
+                '#clinicModal .clinic-section-header{padding:7px 14px !important;font-size:11.5px !important;}' +
+                '#clinicModal .clinic-form-group{margin:3px 0 !important;}' +
+                '#clinicModal .clinic-form-group label{padding:5px 10px !important;font-size:9.5px !important;width:150px !important;min-width:150px !important;}' +
+                '#clinicModal .clinic-form-group input,#clinicModal .clinic-form-group select,#clinicModal .clinic-form-group textarea{padding:5px 10px !important;font-size:11.5px !important;}' +
+                '#clinicModal .clinic-medical-table td{padding:5px 8px !important;font-size:10.5px !important;}' +
+                '#clinicModal .vital-grid{gap:6px !important;}' +
+                '#clinicModal .vital-item{padding:7px !important;}' +
+                '#clinicModal .vital-item input,#clinicModal .vital-item select,#clinicModal .vital-item textarea{padding:5px 8px !important;font-size:11.5px !important;margin-bottom:3px !important;}' +
+                '.clinic-print-cover{margin-bottom:8px !important;}' +
+                '.clinic-print-cover .cpc-band{padding:12px 16px !important;}' +
+                '.clinic-print-cover .cpc-patient{padding:10px 12px 8px !important;margin-top:8px !important;}' +
+                '.clinic-print-cover .cpc-doc-title{font-size:18px !important;}' +
+                /* Forced page breaks */
+                '#clinicModal .cpb-page,.pdf-capture #clinicModal .cpb-page{page-break-before:always !important;break-before:page !important;}' +
+                '#clinicModal .signatures-section-injury,.pdf-capture #clinicModal .signatures-section-injury{page-break-before:auto !important;break-before:auto !important;page-break-inside:avoid !important;break-inside:avoid !important;margin-top:10px !important;}' +
+                /* Never trail a blank page */
+                '#clinicModal .clinic-section:last-of-type,#clinicModal .signatures-section-injury:last-child{page-break-after:auto !important;break-after:auto !important;}' +
+                'body{padding:0 !important;}' +
+              '}' +
               ''
             );
         }
@@ -10393,7 +10522,27 @@ window.YMCO_showSplash = function(){
                     const body = clone.querySelector('.modal-body') || clone;
                     body.insertBefore(cover, body.firstChild);
                 } catch(_){}
+                /* Force exactly 3 print pages: tag sections that should start
+                   a new page. Page 1 = Cover + Personnel (sec 1);
+                   Page 2 = Vital Signs (sec 2) + Medical History (sec 3);
+                   Page 3 = Current Issue (sec 4) + Signatures. */
+                try {
+                    const cs = clone.querySelectorAll('.clinic-section');
+                    /* Only one forced break: before Current Issue (sec 4).
+                       Page 1 = Cover + Personnel + Vital Signs (natural flow)
+                       Page 2 = Medical History (natural flow continues)
+                       Page 3 = Current Issue + Signatures (forced via cpb-page). */
+                    if (cs[3]) cs[3].classList.add('cpb-page');
+                } catch(_){}
             }
+            /* Inline note: the cloned container is wrapped below (in the
+               returned HTML) with `<div id="<modalId>" class="modal-overlay show ...">`
+               so every CSS rule scoped to `#<modalId>.show …` actually applies
+               inside the print window. Without that wrapper class, large parts
+               of the clinic form (labels, inputs, section headers) inherit only
+               the generic `.modal-container` rules and end up unstyled or
+               invisible in mobile/older print engines — which is exactly what
+               produced the blank-pages-with-only-unit-chips output. */
 
             const headStyles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
                 .map(n => n.outerHTML).join('\n');
@@ -10536,13 +10685,18 @@ window.YMCO_showSplash = function(){
                 '"<div class=note>Reference square = 100mm x 100mm. Inner ticks every 25mm.</div>"+'+
                 '"<script>function apply(){var mw=parseFloat(document.getElementById(\\"mW\\").value),mh=parseFloat(document.getElementById(\\"mH\\").value);if(!mw||!mh){alert(\\"Enter both measured values / أدخل القيم المقاسة\\");return}var rw=100/mw,rh=100/mh;var curW=parseFloat(window.opener.localStorage.getItem(\\"ymcoPrintCalMW\\"))||170;var curH=parseFloat(window.opener.localStorage.getItem(\\"ymcoPrintCalMH\\"))||230;var nW=Math.round(curW*rw*10)/10,nH=Math.round(curH*rh*10)/10;window.opener.localStorage.setItem(\\"ymcoPrintCalMW\\",nW);window.opener.localStorage.setItem(\\"ymcoPrintCalMH\\",nH);try{window.opener.document.getElementById(\\"calMW\\").value=nW;window.opener.document.getElementById(\\"calMH\\").value=nH;window.opener.document.documentElement.style.setProperty(\\"--print-img-mw\\",nW+\\"mm\\");window.opener.document.documentElement.style.setProperty(\\"--print-img-mh\\",nH+\\"mm\\");}catch(e){}alert(\\"Applied / تم التطبيق:\\\\nWidth: \\"+nW+\\" mm  (scale \\"+rw.toFixed(3)+\\")\\\\nHeight: \\"+nH+\\" mm  (scale \\"+rh.toFixed(3)+\\")\\");window.close();}<\\/script>"+'+
                 '"</body></html>";var w=window.open(\'\',\'ymcoCalib\',\'width=900,height=900\');w.document.open();w.document.write(html);w.document.close();};<\/script>' +
-                '<div class="print-page"><div id="' + modalId + '">' + clone.outerHTML + '</div></div>' +
+                '<div class="print-page"><div id="' + modalId + '" class="modal-overlay show force-print-visible" style="display:block;position:static;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;animation:none;">' + clone.outerHTML + '</div></div>' +
                 /* === AUTO-PAGINATION runtime: measures rendered blocks inside .print-page
                    and inserts page-break spacers before any block that would overflow.
                    A4 297mm − (top 14mm + bottom 14mm padding on .print-page) = 269mm ≈ 1017px @96dpi.
                    We use 1000px as a safe usable height (browsers vary slightly). */
                 '<style>.pb-spacer{display:block;height:0;margin:0;padding:0;}@media print{.pb-spacer{page-break-before:always !important;break-before:page !important;}}</style>' +
-                '<script>(function(){function run(){try{var pages=document.querySelectorAll(".print-page");pages.forEach(function(p){window.__autoPaginate(p,1000);});}catch(e){console.warn("paginate err",e);}}window.__autoPaginate=' + _autoPaginate.toString() + ';window.__waitForImages=' + _waitForImages.toString() + ';if(document.readyState==="complete"){window.__waitForImages(document.body,3000).then(run);}else{window.addEventListener("load",function(){window.__waitForImages(document.body,3000).then(run);});}})();<\/script>' +
+                '<script>(function(){function run(){try{var pages=document.querySelectorAll(".print-page");pages.forEach(function(p){' +
+                  /* Skip autopaginate for the clinic report — we use explicit
+                     `.cpb-page` markers to enforce exactly 3 pages. */
+                  'if(p.querySelector("#clinicModal")) return;' +
+                  'window.__autoPaginate(p,1000);' +
+                '});}catch(e){console.warn("paginate err",e);}}window.__autoPaginate=' + _autoPaginate.toString() + ';window.__waitForImages=' + _waitForImages.toString() + ';if(document.readyState==="complete"){window.__waitForImages(document.body,3000).then(run);}else{window.addEventListener("load",function(){window.__waitForImages(document.body,3000).then(run);});}})();<\/script>' +
                 '</body></html>'
             );
         }
@@ -10626,6 +10780,10 @@ window.YMCO_showSplash = function(){
                     const cover = _buildClinicCover();
                     const body = clone.querySelector('.modal-body') || clone;
                     body.insertBefore(cover, body.firstChild);
+                } catch(_){}
+                try {
+                    const cs = clone.querySelectorAll('.clinic-section');
+                    if (cs[3]) cs[3].classList.add('cpb-page');
                 } catch(_){}
             }
 
@@ -10736,6 +10894,8 @@ window.YMCO_showSplash = function(){
             // Wrap clone with original modal id so id-scoped CSS (e.g. #clinicModal/#injuryModal …) applies
             const modalIdWrapper = document.createElement('div');
             modalIdWrapper.id = modalId;
+            modalIdWrapper.className = 'modal-overlay show force-print-visible';
+            modalIdWrapper.setAttribute('style','display:block !important;position:static !important;background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;animation:none !important;');
             modalIdWrapper.appendChild(clone);
             inner.appendChild(modalIdWrapper);
             // Reset overflow constraints on the cloned modal
@@ -17936,41 +18096,124 @@ window.toggleInjuryPrintPreview = function(){
   .mi-recs textarea{width:100%;min-height:100px;border:1px solid #fcd34d;border-radius:6px;padding:8px;font-family:inherit;font-size:12.5px;background:#fff;}
   .mi-signs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;}
   .mi-sign{border-top:2px solid #0f4c75;padding-top:6px;text-align:center;font-size:11px;color:#475569;font-weight:600;}
-  @media print {
-    @page { size: A4; margin: 14mm; }
-    body * { visibility: hidden !important; }
-    #monthlyInjuryModal, #monthlyInjuryModal * { visibility: visible !important; }
-    #monthlyInjuryModal { position: static !important; background: #fff !important; padding: 0 !important; display: block !important; overflow: visible !important; }
-    #monthlyInjuryModal .mi-card { box-shadow: none !important; border-radius: 0 !important; max-width: 100% !important; }
-    #monthlyInjuryModal .mi-controls, #monthlyInjuryModal .mi-head, #monthlyInjuryModal .mi-close { display: none !important; }
-    #monthlyInjuryModal .mi-body { padding: 0 !important; }
-    .mi-report { border: none !important; padding: 0 !important; border-radius: 0 !important; }
-    .mi-kpi, .mi-chart-box, .mi-table tr, .mi-recs, .mi-signs { page-break-inside: avoid !important; break-inside: avoid !important; }
-    h2.mi-r-section { page-break-after: avoid !important; }
-    .mi-r-section-detailed { page-break-before: always !important; }
-    .mi-recs textarea { display: none !important; }
-    .mi-recs .mi-recs-print { display: block !important; white-space: pre-wrap; font-size: 12.5px; padding: 8px; min-height: 80px; }
+  .mi-sign-box{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;}
+  .mi-sign-box label{display:block;font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+  .mi-sign-box input[type=text]{width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-bottom:8px;}
+  .mi-sign-box input[type=file]{font-size:11px;}
+  .mi-sign-pad{border:1px dashed #94a3b8;border-radius:6px;height:90px;background:#fff;margin:6px 0;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .mi-sign-pad img{max-width:100%;max-height:100%;}
+  .mi-sign-pad .mi-sign-placeholder{font-size:11px;color:#94a3b8;font-style:italic;}
+  .mi-sign-role{text-align:center;font-size:11px;color:#0f4c75;font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:.05em;}
+    .mi-recs .mi-recs-print { display: none; }
+    .mi-print-more-row { display: none; }
+    @media print {
+      /* Force LANDSCAPE A4 with tight margins so we get max width for charts + table */
+      @page { size: A4 landscape; margin: 8mm; }
+      html, body { height: auto !important; overflow: visible !important; background: #fff !important; margin: 0 !important; padding: 0 !important; }
+      body.mi-print-mode > *:not(#monthlyInjuryModal) { display: none !important; }
+      body.mi-print-mode [style*="position:fixed"], body.mi-print-mode [style*="position: fixed"] { display: none !important; }
+      body.mi-print-mode #monthlyInjuryModal {
+        position: static !important; inset: auto !important;
+        background: #fff !important; padding: 0 !important; margin: 0 !important;
+        display: block !important; overflow: visible !important;
+        height: auto !important; max-height: none !important; width: auto !important;
+        z-index: auto !important;
+      }
+      body.mi-print-mode #monthlyInjuryModal .mi-card {
+        box-shadow: none !important; border-radius: 0 !important;
+        max-width: 100% !important; width: 100% !important; overflow: visible !important;
+      }
+      body.mi-print-mode #monthlyInjuryModal .mi-head,
+      body.mi-print-mode #monthlyInjuryModal .mi-close,
+      body.mi-print-mode #monthlyInjuryModal .mi-controls,
+      body.mi-print-mode #monthlyInjuryModal .mi-empty { display: none !important; }
+      body.mi-print-mode #monthlyInjuryModal .mi-body { padding: 0 !important; }
+      body.mi-print-mode .mi-report { border: none !important; padding: 0 !important; border-radius: 0 !important; font-size: 10px !important; }
+
+      /* === 2-PAGE LAYOUT ===
+         Page 1: Header + KPIs + Charts (6 in one row)
+         Page 2: Detailed table + Recommendations + Signatures */
+      body.mi-print-mode .mi-r-header { padding-bottom: 6px !important; margin-bottom: 8px !important; }
+      body.mi-print-mode .mi-r-header h1 { font-size: 16px !important; }
+      body.mi-print-mode .mi-r-header .mi-r-sub { font-size: 9px !important; }
+      body.mi-print-mode h2.mi-r-section { font-size: 11px !important; margin: 8px 0 4px !important; padding-left: 6px !important; border-left-width: 3px !important; page-break-after: avoid !important; break-after: avoid !important; }
+
+      body.mi-print-mode .mi-kpis { display: grid !important; grid-template-columns: repeat(6, 1fr) !important; gap: 5px !important; }
+      body.mi-print-mode .mi-kpi { padding: 5px 4px !important; border-radius: 6px !important; }
+      body.mi-print-mode .mi-kpi .mi-k-val { font-size: 14px !important; }
+      body.mi-print-mode .mi-kpi .mi-k-lab { font-size: 7px !important; margin-top: 2px !important; }
+
+      body.mi-print-mode .mi-charts { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; }
+      body.mi-print-mode .mi-chart-box { padding: 5px !important; border-radius: 6px !important; }
+      body.mi-print-mode .mi-chart-box h3 { font-size: 8.5px !important; margin: 0 0 3px !important; }
+      body.mi-print-mode .mi-chart-box canvas { max-height: 55mm !important; width: 100% !important; height: 55mm !important; }
+
+      /* Force page 2 to start with the detailed log */
+      body.mi-print-mode .mi-r-section-detailed { page-break-before: always !important; break-before: page !important; margin-top: 0 !important; }
+
+      body.mi-print-mode .mi-table { font-size: 8px !important; margin-top: 4px !important; }
+      body.mi-print-mode .mi-table th { padding: 3px 3px !important; font-size: 8px !important; }
+      body.mi-print-mode .mi-table td { padding: 2.5px 3px !important; }
+      body.mi-print-mode .mi-badge { font-size: 7px !important; padding: 1px 5px !important; }
+      body.mi-print-mode .mi-print-hidden-row { display: none !important; }
+      body.mi-print-mode .mi-print-more-row { display: table-row !important; }
+      body.mi-print-mode .mi-print-more-row td { text-align: center !important; font-style: italic !important; background: #f1f5f9 !important; }
+
+      body.mi-print-mode .mi-recs { padding: 6px 8px !important; margin-top: 6px !important; border-left-width: 3px !important; }
+      body.mi-print-mode .mi-recs textarea { display: none !important; }
+      body.mi-print-mode .mi-recs .mi-recs-print { display: block !important; white-space: pre-wrap; font-size: 9px !important; padding: 2px 0 !important; min-height: 0 !important; line-height: 1.35 !important; }
+
+      body.mi-print-mode .mi-signs, body.mi-print-mode .mi-signs-typed { margin-top: 8px !important; gap: 16px !important; }
+      body.mi-print-mode .mi-sign-box { padding: 6px !important; }
+      body.mi-print-mode .mi-sign-box input[type=file], body.mi-print-mode .mi-sign-box .mi-sign-pad-empty-hint { display: none !important; }
+      body.mi-print-mode .mi-sign-typed-name { font-size: 14px !important; min-height: 18px !important; }
+      body.mi-print-mode .mi-sign-role { font-size: 9px !important; }
+      body.mi-print-mode .mi-sign-date-print { font-size: 8px !important; }
+
+      body.mi-print-mode .mi-kpi,
+      body.mi-print-mode .mi-chart-box,
+      body.mi-print-mode .mi-table tr,
+      body.mi-print-mode .mi-recs,
+      body.mi-print-mode .mi-signs,
+      body.mi-print-mode .mi-signs-typed,
+      body.mi-print-mode .mi-sign-box { page-break-inside: avoid !important; break-inside: avoid !important; }
+    }
+ </style>
+
+
+<style>
+  #monthlyInjuryModal .mi-signs-typed{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:40px;}
+  #monthlyInjuryModal .mi-sign-box{display:flex;flex-direction:column;gap:14px;}
+  #monthlyInjuryModal .mi-sign-fields{display:flex;flex-direction:column;gap:8px;}
+  #monthlyInjuryModal .mi-sign-fields label{font-size:11px;font-weight:700;color:#475569;display:flex;flex-direction:column;gap:3px;}
+  #monthlyInjuryModal .mi-sign-fields input{padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit;}
+  #monthlyInjuryModal .mi-sign-print{padding-top:8px;text-align:center;}
+  #monthlyInjuryModal .mi-sign-typed-name{display:block;font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:18px;color:#0f4c75;min-height:24px;}
+  #monthlyInjuryModal .mi-sign-line{border-bottom:1px solid #0f4c75;margin:4px 20px 6px;}
+  #monthlyInjuryModal .mi-sign-role{font-size:12px;font-weight:700;color:#475569;}
+  #monthlyInjuryModal .mi-sign-date-print{font-size:11px;color:#64748b;margin-top:3px;}
+  @media print{
+    body.mi-print-mode #monthlyInjuryModal .mi-sign-fields{display:none !important;}
   }
-  .mi-recs .mi-recs-print { display: none; }
 </style>
 
 <div id="monthlyInjuryModal" role="dialog" aria-modal="true">
   <div class="mi-card">
     <div class="mi-head">
-      <h2><i class="fas fa-file-medical-alt"></i> Monthly Injury Report / تقرير الإصابات الشهرى</h2>
+      <h2><i class="fas fa-file-medical-alt"></i> Monthly Injury Report</h2>
       <button class="mi-close" onclick="closeMonthlyInjuryReport()" title="Close"><i class="fas fa-times"></i></button>
     </div>
     <div class="mi-body">
       <div class="mi-controls">
-        <div><label>الشهر / Month</label><input type="month" id="miMonth"></div>
-        <div><label>الموقع / Project (optional)</label><select id="miProject"><option value="">-- All Projects --</option></select></div>
+        <div><label>Month</label><input type="month" id="miMonth"></div>
+        <div><label>Project (optional)</label><select id="miProject"><option value="">-- All Projects --</option></select></div>
         <div style="flex:1;"></div>
         <button class="mi-btn mi-btn-primary" onclick="generateMonthlyInjuryReport()"><i class="fas fa-cogs"></i> Generate</button>
         <button class="mi-btn mi-btn-success" id="miDownloadBtn" onclick="downloadMonthlyInjuryReport()" style="display:none;"><i class="fas fa-file-pdf"></i> Download PDF</button>
-        <button class="mi-btn mi-btn-warn" id="miPrintBtn" onclick="window.print()" style="display:none;"><i class="fas fa-print"></i> Print</button>
+        <button class="mi-btn mi-btn-warn" id="miPrintBtn" onclick="printMonthlyInjuryReport()" style="display:none;"><i class="fas fa-print"></i> Print</button>
       </div>
       <div id="miReportContainer">
-        <div class="mi-empty"><i class="fas fa-clipboard-list" style="font-size:48px;color:#cbd5e1;"></i><br><br>اختر الشهر ثم اضغط Generate لإنشاء التقرير<br>Select a month and click Generate to build the report.</div>
+        <div class="mi-empty"><i class="fas fa-clipboard-list" style="font-size:48px;color:#cbd5e1;"></i><br><br>Select a month and click Generate to build the report.</div>
       </div>
     </div>
   </div>
@@ -17979,7 +18222,78 @@ window.toggleInjuryPrintPreview = function(){
 <script>
 (function(){
   let miCharts = {};
+  const MONTHLY_INJURY_PRINT_ROW_LIMIT = 12;
+  const miPdfLibState = { promise: null };
   const KIND_LABELS = { first_aid:'First Aid', medical_aid:'Medical Aid', occupational_illness:'Occupational Illness' };
+
+  function hasMonthlyInjuryJsPdf(){
+    const jspdfNS = window.jspdf || {};
+    return typeof (jspdfNS.jsPDF || window.jsPDF) === 'function';
+  }
+  function hasMonthlyInjuryAutoTable(){
+    const jspdfNS = window.jspdf || {};
+    const JsPDFCtor = jspdfNS.jsPDF || window.jsPDF;
+    return !!(
+      (JsPDFCtor && JsPDFCtor.API && typeof JsPDFCtor.API.autoTable === 'function') ||
+      typeof window.jspdfAutoTable === 'function' ||
+      (window.jspdfAutoTable && typeof window.jspdfAutoTable.default === 'function') ||
+      typeof window.autoTable === 'function'
+    );
+  }
+  function loadMonthlyInjuryScriptOnce(url){
+    return new Promise(function(resolve, reject){
+      const existing = document.querySelector('script[data-mi-src="' + url + '"]');
+      if (existing){
+        if (existing.dataset.loaded === '1') { resolve(); return; }
+        existing.addEventListener('load', function(){ resolve(); }, { once:true });
+        existing.addEventListener('error', function(){ reject(new Error('Failed to load ' + url)); }, { once:true });
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = url;
+      s.async = true;
+      s.dataset.miSrc = url;
+      s.onload = function(){ s.dataset.loaded = '1'; resolve(); };
+      s.onerror = function(){ reject(new Error('Failed to load ' + url)); };
+      document.head.appendChild(s);
+    });
+  }
+  async function ensureMonthlyInjuryPdfLibraries(){
+    if (hasMonthlyInjuryJsPdf() && hasMonthlyInjuryAutoTable()) return true;
+    if (miPdfLibState.promise) return miPdfLibState.promise;
+    miPdfLibState.promise = (async function(){
+      const sources = [
+        ['https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js', 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js'],
+        ['https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js', 'https://unpkg.com/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js']
+      ];
+      let lastErr = null;
+      for (const pair of sources){
+        const jsPdfUrl = pair[0], autoTableUrl = pair[1];
+        try {
+          if (!hasMonthlyInjuryJsPdf()) await loadMonthlyInjuryScriptOnce(jsPdfUrl);
+          if (!hasMonthlyInjuryAutoTable()) await loadMonthlyInjuryScriptOnce(autoTableUrl);
+          if (hasMonthlyInjuryJsPdf() && hasMonthlyInjuryAutoTable()) return true;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr || new Error('PDF libraries unavailable');
+    })();
+    try {
+      return await miPdfLibState.promise;
+    } finally {
+      miPdfLibState.promise = null;
+    }
+  }
+  function setMonthlyInjuryPrintMode(active){
+    const modal = document.getElementById('monthlyInjuryModal');
+    const hasReport = !!document.getElementById('miPrintArea');
+    if (active && modal && modal.classList.contains('show') && hasReport) document.body.classList.add('mi-print-mode');
+    else document.body.classList.remove('mi-print-mode');
+  }
+
+  window.addEventListener('beforeprint', function(){ setMonthlyInjuryPrintMode(true); });
+  window.addEventListener('afterprint', function(){ setMonthlyInjuryPrintMode(false); });
 
   window.openMonthlyInjuryReport = function(){
     const now = new Date();
@@ -17995,6 +18309,7 @@ window.toggleInjuryPrintPreview = function(){
   };
   window.closeMonthlyInjuryReport = function(){
     document.getElementById('monthlyInjuryModal').classList.remove('show');
+    setMonthlyInjuryPrintMode(false);
     Object.values(miCharts).forEach(c=>{ try{c.destroy();}catch(e){} });
     miCharts = {};
   };
@@ -18085,7 +18400,7 @@ window.toggleInjuryPrintPreview = function(){
 
     const container = document.getElementById('miReportContainer');
     if (total === 0){
-      container.innerHTML = `<div class="mi-empty"><i class="fas fa-check-circle" style="font-size:48px;color:#10b981;"></i><br><br>لا توجد إصابات مسجلة فى ${escMI(monthName)}${projectFilter?' / '+escMI(projectFilter):''}<br>No injuries recorded for ${escMI(monthName)}.</div>`;
+      container.innerHTML = `<div class="mi-empty"><i class="fas fa-check-circle" style="font-size:48px;color:#10b981;"></i><br><br>No injuries recorded for ${escMI(monthName)}${projectFilter?' — '+escMI(projectFilter):''}.</div>`;
       document.getElementById('miDownloadBtn').style.display='none';
       document.getElementById('miPrintBtn').style.display='none';
       return;
@@ -18096,40 +18411,38 @@ window.toggleInjuryPrintPreview = function(){
         <div class="mi-r-header">
           <div>
             <h1><i class="fas fa-file-medical-alt"></i> Monthly Injury &amp; Illness Report</h1>
-            <div style="font-size:13px;color:#475569;margin-top:4px;">تقرير الإصابات وأمراض المهنة الشهرى</div>
           </div>
           <div class="mi-r-sub">
             <div><strong>Period:</strong> ${escMI(monthName)}</div>
-            <div><strong>الفترة:</strong> ${escMI(monthNameAr)}</div>
             ${projectFilter?`<div><strong>Project:</strong> ${escMI(projectFilter)}</div>`:''}
             <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
           </div>
         </div>
 
-        <h2 class="mi-r-section">1. Executive Summary / الملخص التنفيذى</h2>
+        <h2 class="mi-r-section">1. Executive Summary</h2>
         <div class="mi-kpis">
-          <div class="mi-kpi mi-danger"><div class="mi-k-val">${total}</div><div class="mi-k-lab">Total Injuries<br>إجمالى الإصابات</div></div>
-          <div class="mi-kpi mi-success"><div class="mi-k-val">${firstAid}</div><div class="mi-k-lab">First Aid<br>إسعاف أولى</div></div>
-          <div class="mi-kpi mi-warn"><div class="mi-k-val">${medical}</div><div class="mi-k-lab">Medical Aid<br>إسعاف طبى</div></div>
-          <div class="mi-kpi mi-danger"><div class="mi-k-val">${illness}</div><div class="mi-k-lab">Occupational Illness<br>أمراض مهنية</div></div>
-          <div class="mi-kpi"><div class="mi-k-val">${uniqueWorkers}</div><div class="mi-k-lab">Workers Affected<br>عمال متأثرون</div></div>
-          <div class="mi-kpi"><div class="mi-k-val" style="color:${trendColor};">${trend}</div><div class="mi-k-lab">vs Prev Month (${prevTotal})<br>مقارنة بالسابق</div></div>
+          <div class="mi-kpi mi-danger"><div class="mi-k-val">${total}</div><div class="mi-k-lab">Total Injuries</div></div>
+          <div class="mi-kpi mi-success"><div class="mi-k-val">${firstAid}</div><div class="mi-k-lab">First Aid</div></div>
+          <div class="mi-kpi mi-warn"><div class="mi-k-val">${medical}</div><div class="mi-k-lab">Medical Aid</div></div>
+          <div class="mi-kpi mi-danger"><div class="mi-k-val">${illness}</div><div class="mi-k-lab">Occupational Illness</div></div>
+          <div class="mi-kpi"><div class="mi-k-val">${uniqueWorkers}</div><div class="mi-k-lab">Workers Affected</div></div>
+          <div class="mi-kpi"><div class="mi-k-val" style="color:${trendColor};">${trend}</div><div class="mi-k-lab">vs Prev Month (${prevTotal})</div></div>
         </div>
 
-        <h2 class="mi-r-section">2. Analytics / التحليلات</h2>
+        <h2 class="mi-r-section">2. Analytics</h2>
         <div class="mi-charts">
-          <div class="mi-chart-box"><h3>By Kind / حسب النوع</h3><canvas id="miChartKind"></canvas></div>
-          <div class="mi-chart-box"><h3>By Injury Type / نوع الإصابة</h3><canvas id="miChartType"></canvas></div>
-          <div class="mi-chart-box"><h3>By Project / حسب الموقع</h3><canvas id="miChartProject"></canvas></div>
-          <div class="mi-chart-box"><h3>By Body Part / الجزء المصاب</h3><canvas id="miChartBody"></canvas></div>
-          <div class="mi-chart-box"><h3>By Week of Month / حسب الأسبوع</h3><canvas id="miChartWeek"></canvas></div>
-          <div class="mi-chart-box"><h3>By Cause / السبب</h3><canvas id="miChartCause"></canvas></div>
+          <div class="mi-chart-box"><h3>By Kind</h3><canvas id="miChartKind"></canvas></div>
+          <div class="mi-chart-box"><h3>By Injury Type</h3><canvas id="miChartType"></canvas></div>
+          <div class="mi-chart-box"><h3>By Project</h3><canvas id="miChartProject"></canvas></div>
+          <div class="mi-chart-box"><h3>By Body Part</h3><canvas id="miChartBody"></canvas></div>
+          <div class="mi-chart-box"><h3>By Week of Month</h3><canvas id="miChartWeek"></canvas></div>
+          <div class="mi-chart-box"><h3>By Cause</h3><canvas id="miChartCause"></canvas></div>
         </div>
 
-        <h2 class="mi-r-section mi-r-section-detailed">3. Detailed Incident Log / سجل الحوادث التفصيلى</h2>
+        <h2 class="mi-r-section mi-r-section-detailed">3. Detailed Incident Log</h2>
         <table class="mi-table">
           <thead><tr>
-            <th>#</th><th>Date</th><th>Ref #</th><th>Worker / العامل</th><th>Emp ID</th>
+            <th>#</th><th>Date</th><th>Ref #</th><th>Worker</th><th>Emp ID</th>
             <th>Project</th><th>Kind</th><th>Injury Type</th><th>Body Part</th>
           </tr></thead>
           <tbody>
@@ -18139,7 +18452,7 @@ window.toggleInjuryPrintPreview = function(){
                 return `<span class="mi-badge ${cls}">${escMI(KIND_LABELS[k]||k)}</span>`;
               }).join(' ');
               const types = i.types.filter(t=>t!=='others_injury').map(escMI).join(', ') + (i.otherType?(i.types.length>1?', ':'')+escMI(i.otherType):'');
-              return `<tr>
+              return `<tr class="${idx >= MONTHLY_INJURY_PRINT_ROW_LIMIT ? 'mi-print-hidden-row' : ''}">
                 <td>${idx+1}</td>
                 <td>${i.date.toLocaleDateString('en-GB')}</td>
                 <td>${escMI(i.ref)}</td>
@@ -18151,24 +18464,55 @@ window.toggleInjuryPrintPreview = function(){
                 <td>${escMI(i.bodyParts.join(', ')||'—')}</td>
               </tr>`;
             }).join('')}
+            ${injuries.length > MONTHLY_INJURY_PRINT_ROW_LIMIT ? `<tr class="mi-print-more-row"><td colspan="9">+ ${injuries.length - MONTHLY_INJURY_PRINT_ROW_LIMIT} more incident(s) — see full dashboard data</td></tr>` : ''}
           </tbody>
         </table>
 
-        <h2 class="mi-r-section">4. Recommendations &amp; Corrective Actions / التوصيات</h2>
+        <h2 class="mi-r-section">4. Recommendations &amp; Corrective Actions</h2>
         <div class="mi-recs">
-          <textarea id="miRecommendations" oninput="document.getElementById('miRecommendationsPrint').textContent=this.value;" placeholder="اكتب التوصيات والإجراءات التصحيحية هنا...&#10;Write your recommendations and corrective actions here...">${defaultRecommendations(total, firstAid, medical, illness, byCause)}</textarea>
+          <textarea id="miRecommendations" oninput="document.getElementById('miRecommendationsPrint').textContent=this.value;" placeholder="Write your recommendations and corrective actions here...">${defaultRecommendations(total, firstAid, medical, illness, byCause)}</textarea>
           <div id="miRecommendationsPrint" class="mi-recs-print">${escMI(defaultRecommendations(total, firstAid, medical, illness, byCause))}</div>
         </div>
 
-        <div class="mi-signs">
-          <div class="mi-sign">Site Nursing Specialist / أخصائي تمريض الموقع</div>
-          <div class="mi-sign">HSE Manager / مدير السلامة</div>
+        <div class="mi-signs mi-signs-typed">
+          <div class="mi-sign-box">
+            <div class="mi-sign-fields">
+              <label>Name<input type="text" class="mi-sign-name" id="miSignNurseName" placeholder="Type full name" oninput="document.getElementById('miSignNurseNamePrint').textContent=this.value;"></label>
+              <label>Date<input type="date" class="mi-sign-date" id="miSignNurseDate" oninput="document.getElementById('miSignNurseDatePrint').textContent=this.value;"></label>
+            </div>
+            <div class="mi-sign-print">
+              <span class="mi-sign-typed-name" id="miSignNurseNamePrint"></span>
+              <div class="mi-sign-line"></div>
+              <div class="mi-sign-role">Site Nursing Specialist</div>
+              <div class="mi-sign-date-print">Date: <span id="miSignNurseDatePrint"></span></div>
+            </div>
+          </div>
+          <div class="mi-sign-box">
+            <div class="mi-sign-fields">
+              <label>Name<input type="text" class="mi-sign-name" id="miSignHseName" placeholder="Type full name" oninput="document.getElementById('miSignHseNamePrint').textContent=this.value;"></label>
+              <label>Date<input type="date" class="mi-sign-date" id="miSignHseDate" oninput="document.getElementById('miSignHseDatePrint').textContent=this.value;"></label>
+            </div>
+            <div class="mi-sign-print">
+              <span class="mi-sign-typed-name" id="miSignHseNamePrint"></span>
+              <div class="mi-sign-line"></div>
+              <div class="mi-sign-role">HSE Manager</div>
+              <div class="mi-sign-date-print">Date: <span id="miSignHseDatePrint"></span></div>
+            </div>
+          </div>
         </div>
       </div>
     `;
     container.innerHTML = html;
     document.getElementById('miDownloadBtn').style.display='inline-flex';
     document.getElementById('miPrintBtn').style.display='inline-flex';
+    // Default signature dates to today
+    (function(){
+      const today = new Date().toISOString().slice(0,10);
+      ['miSignNurseDate','miSignHseDate'].forEach(function(id){
+        const el = document.getElementById(id);
+        if (el){ el.value = today; const p = document.getElementById(id+'Print'); if(p) p.textContent = today; }
+      });
+    })();
 
     // Render charts
     setTimeout(()=>{
@@ -18205,35 +18549,36 @@ window.toggleInjuryPrintPreview = function(){
   function defaultRecommendations(total, firstAid, medical, illness, byCause){
     const lines = [];
     if (total > 0){
-      lines.push('• مراجعة إجراءات السلامة فى المواقع التى شهدت إصابات هذا الشهر.');
-      lines.push('• إعادة التدريب على الـ PPE للعمال المتأثرين.');
+      lines.push('• Review site safety procedures at locations that recorded injuries this month.');
+      lines.push('• Re-train affected workers on proper PPE usage.');
     }
     if (medical + illness > 0){
-      lines.push('• تكثيف الفحوصات الطبية الدورية وخاصةً للعمال فى الأنشطة عالية الخطورة.');
+      lines.push('• Increase the frequency of periodic medical check-ups, especially for workers in high-risk activities.');
     }
     const topCause = Object.entries(byCause).sort((a,b)=>b[1]-a[1])[0];
     if (topCause){
-      lines.push(`• السبب الرئيسى المتكرر: "${topCause[0]}" (${topCause[1]} حالة) — وضع خطة تصحيحية محددة.`);
+      lines.push(`• Most frequent root cause: "${topCause[0]}" (${topCause[1]} case${topCause[1]>1?'s':''}) — define a specific corrective action plan.`);
     }
-    if (lines.length === 0) lines.push('• الاستمرار فى تطبيق إجراءات السلامة الحالية.');
+    if (lines.length === 0) lines.push('• Continue applying current safety procedures.');
     return lines.join('\n');
   }
 
   window.generateMonthlyInjuryReport = function(){
     const v = document.getElementById('miMonth').value;
-    if (!v) { alert('Please select a month / من فضلك اختر الشهر'); return; }
+    if (!v) { alert('Please select a month'); return; }
     const [y,m] = v.split('-').map(Number);
     const projectFilter = document.getElementById('miProject').value || '';
     const injuries = collectInjuries(y, m-1, projectFilter);
     buildReport(injuries, y, m-1, projectFilter);
   };
 
-  window.downloadMonthlyInjuryReport = function(){
+  function buildMonthlyInjuryPdfDoc(){
     const el = document.getElementById('miPrintArea');
-    if (!el) { alert('Generate the report first / أنشئ التقرير أولاً'); return; }
+    if (!el) { alert('Generate the report first'); return null; }
     const jspdfNS = (window.jspdf || {});
     const JsPDFCtor = jspdfNS.jsPDF || window.jsPDF;
-    if (!JsPDFCtor) { alert('PDF library not loaded (jsPDF missing).'); return; }
+    if (!JsPDFCtor) { alert('PDF library not loaded yet. Please try again.'); return null; }
+
 
     const monthVal = document.getElementById('miMonth').value || '';
     const projectFilter = document.getElementById('miProject').value || '';
@@ -18243,7 +18588,6 @@ window.toggleInjuryPrintPreview = function(){
     if (!injuries.length) { alert('No data to export.'); return; }
 
     const monthName   = new Date(yy, mm-1, 1).toLocaleString('en-US',{month:'long',year:'numeric'});
-    const monthNameAr = new Date(yy, mm-1, 1).toLocaleString('ar-EG',{month:'long',year:'numeric'});
     const total       = injuries.length;
     const firstAid    = injuries.filter(i=>i.kind.includes('first_aid')).length;
     const medical     = injuries.filter(i=>i.kind.includes('medical_aid')).length;
@@ -18253,98 +18597,75 @@ window.toggleInjuryPrintPreview = function(){
     const prevTotal   = collectInjuries(prevDate.getFullYear(), prevDate.getMonth(), projectFilter).length;
     const trend       = prevTotal === 0 ? (total>0?'+Inf':'0') : (((total-prevTotal)/prevTotal*100).toFixed(0)+'%');
 
-    const doc = new JsPDFCtor({ orientation:'portrait', unit:'mm', format:'a4' });
+    // ====== 2-PAGE LAYOUT — LANDSCAPE A4 ======
+    const doc = new JsPDFCtor({ orientation:'landscape', unit:'mm', format:'a4' });
     const PRIMARY=[15,76,117], LIGHT=[50,130,184], MUTED=[100,116,139], SOFT=[226,232,240];
-    const PW = doc.internal.pageSize.getWidth();
-    const PH = doc.internal.pageSize.getHeight();
+    const PW = doc.internal.pageSize.getWidth();   // 297
+    const PH = doc.internal.pageSize.getHeight();  // 210
     const generated = now.toLocaleString();
     const refNo = 'MIR-' + yy + String(mm).padStart(2,'0') + '-' + String(Date.now()).slice(-5);
+    const mX = 10;
 
-    // ---------- Cover ----------
-    doc.setFillColor.apply(doc, PRIMARY); doc.rect(0,0,PW,58,'F');
-    doc.setFillColor.apply(doc, LIGHT);   doc.rect(0,58,PW,3,'F');
-    doc.setTextColor(255,255,255);
-    doc.setFont('helvetica','bold'); doc.setFontSize(22);
-    doc.text('Monthly Injury & Illness Report', PW/2, 30, { align:'center' });
-    doc.setFont('helvetica','normal'); doc.setFontSize(12);
-    doc.text('Construction Medical Records System', PW/2, 42, { align:'center' });
+    // ---------- Page header drawer ----------
+    function drawPageHeader(){
+      doc.setFillColor.apply(doc, PRIMARY); doc.rect(0, 0, PW, 14, 'F');
+      doc.setFillColor.apply(doc, LIGHT);   doc.rect(0, 14, PW, 1.2, 'F');
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+      doc.text('Monthly Injury & Illness Report', mX, 6.5);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+      doc.text(monthName + (projectFilter?'  ·  '+projectFilter:''), mX, 11.5);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      doc.text('Ref: ' + refNo, PW-mX, 6.5, { align:'right' });
+      doc.text('Generated: ' + generated, PW-mX, 11.5, { align:'right' });
+    }
+    function drawPageFooter(pageNum, pageTotal){
+      doc.setDrawColor.apply(doc, SOFT); doc.setLineWidth(0.3);
+      doc.line(mX, PH-7, PW-mX, PH-7);
+      doc.setTextColor.apply(doc, MUTED); doc.setFontSize(7.5); doc.setFont('helvetica','normal');
+      doc.text('Construction Medical Records System  ·  CONFIDENTIAL', mX, PH-3);
+      doc.text('Page ' + pageNum + ' of ' + pageTotal, PW-mX, PH-3, { align:'right' });
+    }
 
-    doc.setDrawColor.apply(doc, SOFT); doc.setFillColor(248,250,252);
-    doc.roundedRect(20, 80, PW-40, 120, 3, 3, 'FD');
-    doc.setTextColor.apply(doc, PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(14);
-    doc.text('Report Details', 28, 94);
-    doc.setDrawColor.apply(doc, LIGHT); doc.setLineWidth(0.5);
-    doc.line(28, 97, PW-28, 97);
+    // ---------- PAGE 1: KPIs + Charts ----------
+    drawPageHeader();
+    let cy = 20;
 
-    const rows = [
-      ['Reference No.', refNo],
-      ['Period',        monthName],
-      ['Project',       projectFilter || 'All Projects'],
-      ['Total Records', String(total)],
-      ['First Aid',     String(firstAid)],
-      ['Medical Aid',   String(medical)],
-      ['Illness',       String(illness)],
-      ['Workers Affected', String(uniqueWorkers)],
-      ['vs Previous Month', trend + ' (prev: ' + prevTotal + ')'],
-      ['Generated',     generated],
-    ];
-    doc.setFontSize(10.5); let y = 108;
-    rows.forEach(function(r){
-      doc.setFont('helvetica','bold'); doc.setTextColor.apply(doc, MUTED);
-      doc.text(r[0]+':', 30, y);
-      doc.setFont('helvetica','normal'); doc.setTextColor(30,41,59);
-      doc.text(String(r[1]), 80, y);
-      y += 8.5;
-    });
-
-    const sy = PH - 50;
-    doc.setDrawColor.apply(doc, PRIMARY); doc.setLineWidth(0.4);
-    doc.line(25, sy, 90, sy); doc.line(PW-90, sy, PW-25, sy);
-    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor.apply(doc, MUTED);
-    doc.text('Site Nursing Specialist', 57.5, sy+6, { align:'center' });
-    doc.text('HSE Manager',            PW-57.5, sy+6, { align:'center' });
-    doc.setFontSize(8);
-    doc.text('CONFIDENTIAL — For internal use only', PW/2, PH-12, { align:'center' });
-
-    // ---------- Page 2: KPIs + Charts ----------
-    doc.addPage('a4','portrait');
-    let cy = 22;
-    doc.setTextColor.apply(doc, PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(13);
-    doc.text('1. Executive Summary', 14, cy);
-    doc.setDrawColor.apply(doc, PRIMARY); doc.setLineWidth(0.8);
-    doc.line(14, cy+1.5, 62, cy+1.5);
+    // KPIs (6 across)
+    doc.setTextColor.apply(doc, PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(10.5);
+    doc.text('1. Executive Summary', mX, cy);
+    doc.setDrawColor.apply(doc, PRIMARY); doc.setLineWidth(0.6);
+    doc.line(mX, cy+1.3, mX+42, cy+1.3);
 
     const kpis = [
       { l:'Total Injuries',       v:total,         c:[220,38,38] },
       { l:'First Aid',            v:firstAid,      c:[5,150,105] },
       { l:'Medical Aid',          v:medical,       c:[217,119,6] },
       { l:'Occupational Illness', v:illness,       c:[185,28,28] },
-      { l:'Workers Affected',     v:uniqueWorkers, c:[15,76,117] },
-      { l:'vs Prev Month',        v:trend,         c: total>prevTotal?[220,38,38]:(total<prevTotal?[5,150,105]:[100,116,139]) },
+      { l:'Workers Affected',     v:uniqueWorkers, c:PRIMARY },
+      { l:'vs Prev (' + prevTotal + ')', v:trend,  c: total>prevTotal?[220,38,38]:(total<prevTotal?[5,150,105]:MUTED) },
     ];
-    const cols=3, gap=4, mX=14;
-    const cellW = (PW - mX*2 - gap*(cols-1)) / cols;
-    const cellH = 22;
-    let kY = cy + 6;
+    const kCols = 6, kGap = 3;
+    const kW = (PW - mX*2 - kGap*(kCols-1)) / kCols;
+    const kH = 18;
+    const kY = cy + 4;
     kpis.forEach(function(k, i){
-      const cxk = mX + (i%cols)*(cellW+gap);
-      const cyk = kY + Math.floor(i/cols)*(cellH+gap);
+      const cxk = mX + i*(kW+kGap);
       doc.setFillColor(248,250,252); doc.setDrawColor.apply(doc, SOFT);
-      doc.roundedRect(cxk, cyk, cellW, cellH, 2, 2, 'FD');
-      doc.setTextColor.apply(doc, k.c); doc.setFont('helvetica','bold'); doc.setFontSize(16);
-      doc.text(String(k.v), cxk+cellW/2, cyk+11, { align:'center' });
-      doc.setTextColor.apply(doc, MUTED); doc.setFont('helvetica','bold'); doc.setFontSize(7);
-      doc.text(k.l.toUpperCase(), cxk+cellW/2, cyk+18, { align:'center' });
+      doc.roundedRect(cxk, kY, kW, kH, 2, 2, 'FD');
+      doc.setTextColor.apply(doc, k.c); doc.setFont('helvetica','bold'); doc.setFontSize(14);
+      doc.text(String(k.v), cxk+kW/2, kY+9, { align:'center' });
+      doc.setTextColor.apply(doc, MUTED); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+      doc.text(k.l.toUpperCase(), cxk+kW/2, kY+15, { align:'center' });
     });
 
-    // Charts
-    const chartsTop = kY + 2*(cellH+gap) + 6;
-    doc.setTextColor.apply(doc, PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(13);
-    doc.text('2. Analytics', 14, chartsTop);
-    doc.setDrawColor.apply(doc, PRIMARY); doc.setLineWidth(0.8);
-    doc.line(14, chartsTop+1.5, 36, chartsTop+1.5);
+    // Charts header
+    const chartsTop = kY + kH + 6;
+    doc.setTextColor.apply(doc, PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(10.5);
+    doc.text('2. Analytics', mX, chartsTop);
+    doc.setDrawColor.apply(doc, PRIMARY); doc.setLineWidth(0.6);
+    doc.line(mX, chartsTop+1.3, mX+20, chartsTop+1.3);
 
-    // Recompute groupings for native vector charts
+    // Group data for charts
     const byKind = groupCount(injuries, i=>i.kind.map(k=>KIND_LABELS[k]||k));
     const byType = groupCount(injuries, i=>{
       const t = i.types.filter(x=>x!=='others_injury');
@@ -18361,77 +18682,68 @@ window.toggleInjuryPrintPreview = function(){
       [15,76,117],[50,130,184],[0,180,216],[16,185,129],[245,158,11],
       [239,68,68],[139,92,246],[236,72,153],[20,184,166],[249,115,22]
     ];
-
     function truncate(s, n){ s=String(s); return s.length>n ? s.slice(0,n-1)+'…' : s; }
 
-    // Vector doughnut chart with legend on the right
     function drawDoughnut(x, y, w, h, title, data){
       doc.setDrawColor.apply(doc, SOFT); doc.setFillColor(255,255,255);
       doc.roundedRect(x, y, w, h, 2, 2, 'FD');
-      doc.setTextColor.apply(doc, MUTED); doc.setFont('helvetica','bold'); doc.setFontSize(8);
-      doc.text(title, x+w/2, y+5, { align:'center' });
-
+      doc.setTextColor.apply(doc, MUTED); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+      doc.text(title, x+w/2, y+4.5, { align:'center' });
       const labels = Object.keys(data);
       const vals = labels.map(k=>data[k]);
-      const total = vals.reduce((a,b)=>a+b,0);
-      if (!total){
-        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor.apply(doc, MUTED);
+      const tot = vals.reduce((a,b)=>a+b,0);
+      if (!tot){
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor.apply(doc, MUTED);
         doc.text('No data', x+w/2, y+h/2, { align:'center' });
         return;
       }
-      const chartAreaX = x+3, chartAreaY = y+8, chartAreaH = h-11;
+      const chartAreaX = x+2, chartAreaY = y+7, chartAreaH = h-9;
       const chartAreaW = w*0.45;
-      const cx = chartAreaX + chartAreaW/2;
-      const cy = chartAreaY + chartAreaH/2;
-      const R = Math.min(chartAreaW, chartAreaH)/2 - 2;
+      const cxc = chartAreaX + chartAreaW/2;
+      const cyc = chartAreaY + chartAreaH/2;
+      const R = Math.min(chartAreaW, chartAreaH)/2 - 1.5;
       const r = R*0.55;
-
-      // Draw slices using filled triangles (vector, no rasterization)
       let acc = -Math.PI/2;
-      const STEP = Math.PI/90; // 2° steps
+      const STEP = Math.PI/90;
       vals.forEach((v, idx)=>{
-        const ang = (v/total) * Math.PI*2;
+        const ang = (v/tot) * Math.PI*2;
         const end = acc + ang;
         const color = PALETTE[idx % PALETTE.length];
         doc.setFillColor(color[0], color[1], color[2]);
-        doc.setDrawColor(color[0], color[1], color[2]);
         for (let a=acc; a<end; a+=STEP){
           const a2 = Math.min(a+STEP, end);
-          const x1 = cx + R*Math.cos(a),  y1 = cy + R*Math.sin(a);
-          const x2 = cx + R*Math.cos(a2), y2 = cy + R*Math.sin(a2);
-          const x3 = cx + r*Math.cos(a2), y3 = cy + r*Math.sin(a2);
-          const x4 = cx + r*Math.cos(a),  y4 = cy + r*Math.sin(a);
+          const x1 = cxc + R*Math.cos(a),  y1 = cyc + R*Math.sin(a);
+          const x2 = cxc + R*Math.cos(a2), y2 = cyc + R*Math.sin(a2);
+          const x3 = cxc + r*Math.cos(a2), y3 = cyc + r*Math.sin(a2);
+          const x4 = cxc + r*Math.cos(a),  y4 = cyc + r*Math.sin(a);
           doc.triangle(x1,y1,x2,y2,x3,y3,'F');
           doc.triangle(x1,y1,x3,y3,x4,y4,'F');
         }
         acc = end;
       });
-      // White center cover (defensive against seam artifacts)
       doc.setFillColor(255,255,255);
-      doc.circle(cx, cy, r-0.1, 'F');
-      // Center total
-      doc.setTextColor.apply(doc, PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(10);
-      doc.text(String(total), cx, cy+0.5, { align:'center', baseline:'middle' });
-      doc.setTextColor.apply(doc, MUTED); doc.setFontSize(6);
-      doc.text('TOTAL', cx, cy+4, { align:'center', baseline:'middle' });
+      doc.circle(cxc, cyc, r-0.1, 'F');
+      doc.setTextColor.apply(doc, PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      doc.text(String(tot), cxc, cyc+0.5, { align:'center', baseline:'middle' });
+      doc.setTextColor.apply(doc, MUTED); doc.setFontSize(5.5);
+      doc.text('TOTAL', cxc, cyc+3.5, { align:'center', baseline:'middle' });
 
-      // Legend (right side)
-      const legX = x + chartAreaW + 4;
-      const legW = w - chartAreaW - 7;
-      const maxRows = Math.floor((h-10) / 4.2);
+      const legX = x + chartAreaW + 3;
+      const legW = w - chartAreaW - 5;
+      const maxRows = Math.floor((h-9) / 3.6);
       const shown = labels.slice(0, maxRows);
       const extra = labels.length - shown.length;
-      let ly = y + 9;
-      doc.setFont('helvetica','normal'); doc.setFontSize(6.8);
+      let ly = y + 8.5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(6);
       shown.forEach((lab, idx)=>{
         const color = PALETTE[idx % PALETTE.length];
         doc.setFillColor(color[0], color[1], color[2]);
-        doc.rect(legX, ly-2.2, 2.5, 2.5, 'F');
+        doc.rect(legX, ly-1.9, 2.1, 2.1, 'F');
         doc.setTextColor(30,41,59);
-        const pct = Math.round((vals[idx]/total)*100);
-        const txt = truncate(lab, Math.max(8, Math.floor(legW/1.4))) + '  ' + vals[idx] + ' (' + pct + '%)';
-        doc.text(txt, legX+3.5, ly);
-        ly += 4.2;
+        const pct = Math.round((vals[idx]/tot)*100);
+        const txt = truncate(lab, Math.max(8, Math.floor(legW/1.3))) + '  ' + vals[idx] + ' (' + pct + '%)';
+        doc.text(txt, legX+3, ly);
+        ly += 3.6;
       });
       if (extra > 0){
         doc.setTextColor.apply(doc, MUTED);
@@ -18439,43 +18751,36 @@ window.toggleInjuryPrintPreview = function(){
       }
     }
 
-    // Vector bar chart
     function drawBar(x, y, w, h, title, data, color){
       doc.setDrawColor.apply(doc, SOFT); doc.setFillColor(255,255,255);
       doc.roundedRect(x, y, w, h, 2, 2, 'FD');
-      doc.setTextColor.apply(doc, MUTED); doc.setFont('helvetica','bold'); doc.setFontSize(8);
-      doc.text(title, x+w/2, y+5, { align:'center' });
-
+      doc.setTextColor.apply(doc, MUTED); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+      doc.text(title, x+w/2, y+4.5, { align:'center' });
       const labels = Object.keys(data);
       const vals = labels.map(k=>data[k]);
       if (!labels.length){
-        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor.apply(doc, MUTED);
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor.apply(doc, MUTED);
         doc.text('No data', x+w/2, y+h/2, { align:'center' });
         return;
       }
-      const padL=10, padR=4, padT=9, padB=10;
+      const padL=9, padR=3, padT=8, padB=9;
       const plotX = x+padL, plotY = y+padT;
       const plotW = w-padL-padR, plotH = h-padT-padB;
       const maxV = Math.max.apply(null, vals);
       const yMax = Math.max(1, Math.ceil(maxV));
-
-      // Y axis ticks (3 lines)
       doc.setDrawColor(229,231,235); doc.setLineWidth(0.15);
-      doc.setTextColor.apply(doc, MUTED); doc.setFont('helvetica','normal'); doc.setFontSize(6);
+      doc.setTextColor.apply(doc, MUTED); doc.setFont('helvetica','normal'); doc.setFontSize(5.5);
       for (let t=0; t<=3; t++){
         const v = Math.round((yMax/3)*t);
         const py = plotY + plotH - (v/yMax)*plotH;
         doc.line(plotX, py, plotX+plotW, py);
-        doc.text(String(v), plotX-1.5, py+1, { align:'right' });
+        doc.text(String(v), plotX-1.2, py+1, { align:'right' });
       }
-      // X axis
-      doc.setDrawColor(...MUTED); doc.setLineWidth(0.25);
+      doc.setDrawColor.apply(doc, MUTED); doc.setLineWidth(0.25);
       doc.line(plotX, plotY+plotH, plotX+plotW, plotY+plotH);
-
-      // Bars
       const n = labels.length;
       const slot = plotW / n;
-      const barW = Math.min(slot*0.6, 8);
+      const barW = Math.min(slot*0.6, 7);
       const [cr,cg,cb] = color || PALETTE[0];
       labels.forEach((lab, idx)=>{
         const v = vals[idx];
@@ -18484,12 +18789,10 @@ window.toggleInjuryPrintPreview = function(){
         const by = plotY + plotH - bh;
         doc.setFillColor(cr,cg,cb);
         doc.rect(bx, by, barW, bh, 'F');
-        // value label above bar
-        doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(30,41,59);
-        doc.text(String(v), bx+barW/2, by-0.8, { align:'center' });
-        // x label below
-        doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor.apply(doc, MUTED);
-        doc.text(truncate(lab, Math.max(6, Math.floor(slot/1.3))), bx+barW/2, plotY+plotH+3.5, { align:'center' });
+        doc.setFont('helvetica','bold'); doc.setFontSize(5.5); doc.setTextColor(30,41,59);
+        doc.text(String(v), bx+barW/2, by-0.6, { align:'center' });
+        doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor.apply(doc, MUTED);
+        doc.text(truncate(lab, Math.max(6, Math.floor(slot/1.2))), bx+barW/2, plotY+plotH+3, { align:'center' });
       });
     }
 
@@ -18501,10 +18804,11 @@ window.toggleInjuryPrintPreview = function(){
       { kind:'bar',      title:'By Week of Month',  data: byWeekAll,  color: PALETTE[4] },
       { kind:'doughnut', title:'By Cause',          data: byCauseAll },
     ];
-    const cCols=2, cRows=3, cGap=4;
+    // 3 cols x 2 rows
+    const cCols=3, cRows=2, cGap=4;
     const cW = (PW - mX*2 - cGap*(cCols-1)) / cCols;
-    const cH = (PH - chartsTop - 20 - cGap*(cRows-1)) / cRows;
-    const cY0 = chartsTop + 5;
+    const cY0 = chartsTop + 4;
+    const cH = (PH - cY0 - 12 - cGap*(cRows-1)) / cRows;
     chartDefs.forEach(function(d, i){
       const cxc = mX + (i%cCols)*(cW+cGap);
       const cyc = cY0 + Math.floor(i/cCols)*(cH+cGap);
@@ -18512,59 +18816,88 @@ window.toggleInjuryPrintPreview = function(){
       else                       drawBar(cxc, cyc, cW, cH, d.title, d.data, d.color);
     });
 
-    // ---------- Page 3+: Detailed table (Landscape) ----------
+    // ---------- PAGE 2: Detailed table + Recommendations + Signatures ----------
     doc.addPage('a4','landscape');
-    const PWL = doc.internal.pageSize.getWidth();
-    doc.setTextColor.apply(doc, PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(13);
-    doc.text('3. Detailed Incident Log', 14, 18);
-    doc.setDrawColor.apply(doc, PRIMARY); doc.setLineWidth(0.8);
-    doc.line(14, 19.5, 70, 19.5);
+    drawPageHeader();
 
+    let py = 20;
+    doc.setTextColor.apply(doc, PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(10.5);
+    doc.text('3. Detailed Incident Log', mX, py);
+    doc.setDrawColor.apply(doc, PRIMARY); doc.setLineWidth(0.6);
+    doc.line(mX, py+1.3, mX+50, py+1.3);
+
+    function _trim(s, n){ s = String(s==null?'':s); return s.length>n ? s.slice(0,n-1)+'…' : s; }
     const body = injuries.map(function(it, idx){
       const kinds = it.kind.map(function(k){ return KIND_LABELS[k]||k; }).join(', ');
       const types = it.types.filter(function(t){ return t!=='others_injury'; }).join(', ') + (it.otherType?(it.types.length>1?', ':'')+it.otherType:'');
-      const statuses = (it.status||[]).join(', ');
       return [
         idx+1,
         it.date.toLocaleDateString('en-GB'),
-        it.ref || '—',
-        it.name || '—',
-        it.empId || '—',
-        it.project || '—',
-        it.company || '—',
-        it.jobTitle || '—',
-        kinds || '—',
-        types || '—',
-        (it.bodyParts||[]).join(', ') || '—',
-        (it.causes||[]).join(', ') || '—',
-        statuses || '—',
+        _trim(it.ref || '—', 14),
+        _trim(it.name || '—', 22),
+        _trim(it.empId || '—', 12),
+        _trim(it.project || '—', 16),
+        _trim(it.company || '—', 16),
+        _trim(it.jobTitle || '—', 16),
+        _trim(kinds || '—', 14),
+        _trim(types || '—', 22),
+        _trim((it.bodyParts||[]).join(', ') || '—', 20),
+        _trim((it.causes||[]).join(', ') || '—', 26),
       ];
     });
 
-    doc.autoTable({
-      startY: 24,
-      head: [['#','Date','Ref #','Worker','Emp ID','Project','Company','Job','Kind','Injury Type','Body Part','Cause','Status']],
-      body: body,
+    // Reserve space at bottom for recommendations + signatures (~70mm)
+    const tableTop = py + 3;
+    const reservedBottom = 70;
+    const tableMaxY = PH - reservedBottom;
+
+    // Strict capacity: assume each row ~5.5mm including padding, header ~6mm
+    const rowH = 5.5;
+    const headerH = 6;
+    const capacity = Math.max(1, Math.floor((tableMaxY - tableTop - headerH) / rowH));
+    let displayBody = body;
+    if (body.length > capacity){
+      const truncatedCount = body.length - (capacity - 1);
+      displayBody = body.slice(0, capacity - 1);
+      displayBody.push([{ content: '+ ' + truncatedCount + ' more incident(s) — see full data on dashboard', colSpan: 12, styles: { halign:'center', fontStyle:'italic', textColor: MUTED, fillColor:[241,245,249] } }]);
+    }
+
+
+    const autoTableFn = typeof doc.autoTable === 'function'
+      ? function(opts){ doc.autoTable(opts); }
+      : (window.jspdfAutoTable && typeof window.jspdfAutoTable.default === 'function')
+        ? function(opts){ window.jspdfAutoTable.default(doc, opts); }
+        : (typeof window.jspdfAutoTable === 'function')
+          ? function(opts){ window.jspdfAutoTable(doc, opts); }
+          : (typeof window.autoTable === 'function')
+            ? function(opts){ window.autoTable(doc, opts); }
+            : null;
+    if (!autoTableFn) { alert('PDF table library not loaded yet. Please try again.'); return null; }
+
+    autoTableFn({
+      startY: tableTop,
+      head: [['#','Date','Ref #','Worker','Emp ID','Project','Company','Job','Kind','Injury Type','Body Part','Cause']],
+      body: displayBody,
       theme: 'grid',
-      styles: { fontSize: 7.5, cellPadding: 1.6, overflow: 'linebreak', valign: 'middle' },
-      headStyles: { fillColor: PRIMARY, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      styles: { fontSize: 7, cellPadding: 1.2, overflow: 'linebreak', valign: 'middle' },
+      headStyles: { fillColor: PRIMARY, textColor: 255, fontStyle: 'bold', fontSize: 7.5, cellPadding: 1.4 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       columnStyles: {
-        0: { cellWidth: 8,  halign:'center' },
-        1: { cellWidth: 18 },
+        0: { cellWidth: 7,  halign:'center' },
+        1: { cellWidth: 16 },
         2: { cellWidth: 20 },
         3: { cellWidth: 30 },
-        4: { cellWidth: 20 },
+        4: { cellWidth: 18 },
         5: { cellWidth: 24 },
         6: { cellWidth: 24 },
         7: { cellWidth: 22 },
         8: { cellWidth: 22 },
-        9: { cellWidth: 28 },
-        10:{ cellWidth: 26 },
-        11:{ cellWidth: 26 },
-        12:{ cellWidth: 22 },
+        9: { cellWidth: 30 },
+        10:{ cellWidth: 28 },
+        11:{ cellWidth: 36 },
       },
-      margin: { top: 22, left: 10, right: 10, bottom: 14 },
+      margin: { top: 18, left: mX, right: mX, bottom: reservedBottom + 4 },
+      pageBreak: 'avoid',
       didDrawCell: function(data){
         if (data.section === 'body' && data.column.index === 8) {
           const raw = String(data.cell.raw || '').toLowerCase();
@@ -18574,59 +18907,122 @@ window.toggleInjuryPrintPreview = function(){
           else if (raw.indexOf('first') >= 0) fill = [220, 252, 231];
           if (fill) {
             doc.setFillColor(fill[0],fill[1],fill[2]);
-            doc.rect(data.cell.x+0.4, data.cell.y+0.4, data.cell.width-0.8, data.cell.height-0.8, 'F');
+            doc.rect(data.cell.x+0.3, data.cell.y+0.3, data.cell.width-0.6, data.cell.height-0.6, 'F');
             doc.setTextColor(30,41,59);
             doc.text(String(data.cell.raw||''), data.cell.x + data.cell.width/2, data.cell.y + data.cell.height/2 + 1, { align:'center', baseline:'middle', maxWidth: data.cell.width-1 });
           }
         }
       }
     });
+    // Enforce strict 2-page output: drop any extra pages autoTable may have added
+    while (doc.getNumberOfPages() > 2) { doc.deletePage(doc.getNumberOfPages()); }
+    doc.setPage(2);
 
-    // ---------- Last page: Recommendations + Signatures ----------
-    doc.addPage('a4','portrait');
-    doc.setTextColor.apply(doc, PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(13);
-    doc.text('4. Recommendations & Corrective Actions', 14, 22);
-    doc.setDrawColor.apply(doc, PRIMARY); doc.setLineWidth(0.8);
-    doc.line(14, 23.5, 92, 23.5);
 
-    const recsTxt = (document.getElementById('miRecommendations')||{}).value || '';
+    // Recommendations + Signatures area (bottom of page 2)
+    const recY = PH - reservedBottom + 2;
+    doc.setTextColor.apply(doc, PRIMARY); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text('4. Recommendations & Corrective Actions', mX, recY);
+    doc.setDrawColor.apply(doc, PRIMARY); doc.setLineWidth(0.5);
+    doc.line(mX, recY+1.2, mX+62, recY+1.2);
+
+    const recsTxt = ((document.getElementById('miRecommendations')||{}).value || '').trim() || '(No recommendations entered)';
+    const recBoxY = recY + 3;
+    const recBoxH = 30;
     doc.setFillColor(255, 251, 235); doc.setDrawColor(252, 211, 77);
-    const boxY = 30, boxH = PH - boxY - 70;
-    doc.roundedRect(14, boxY, PW-28, boxH, 2, 2, 'FD');
-    doc.setTextColor(30,41,59); doc.setFont('helvetica','normal'); doc.setFontSize(11);
-    const wrapped = doc.splitTextToSize(recsTxt || '(No recommendations entered)', PW-36);
-    doc.text(wrapped, 18, boxY+8);
+    doc.roundedRect(mX, recBoxY, PW-mX*2, recBoxH, 2, 2, 'FD');
+    doc.setTextColor(30,41,59); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    const wrapped = doc.splitTextToSize(recsTxt, PW-mX*2-6);
+    // Trim lines that won't fit (keep box at fixed height)
+    const lineH = 3.6;
+    const maxLines = Math.floor((recBoxH-4) / lineH);
+    const shownLines = wrapped.slice(0, maxLines);
+    if (wrapped.length > maxLines && shownLines.length){
+      shownLines[shownLines.length-1] = (shownLines[shownLines.length-1] || '').slice(0,-1) + '…';
+    }
+    doc.text(shownLines, mX+3, recBoxY+5);
 
-    const sigY = PH - 40;
+    // Signatures
+    const nurseName = ((document.getElementById('miSignNurseName')||{}).value||'').trim();
+    const hseName   = ((document.getElementById('miSignHseName')||{}).value||'').trim();
+    const nurseDate = ((document.getElementById('miSignNurseDate')||{}).value||'').trim();
+    const hseDate   = ((document.getElementById('miSignHseDate')||{}).value||'').trim();
+    const sigY = PH - 15;
+    const sigCx1 = PW*0.28, sigCx2 = PW*0.72;
+    doc.setFont('times','italic'); doc.setFontSize(11); doc.setTextColor.apply(doc, PRIMARY);
+    if (nurseName) doc.text(nurseName, sigCx1, sigY-1.5, { align:'center' });
+    if (hseName)   doc.text(hseName,   sigCx2, sigY-1.5, { align:'center' });
     doc.setDrawColor.apply(doc, PRIMARY); doc.setLineWidth(0.4);
-    doc.line(25, sigY, 90, sigY); doc.line(PW-90, sigY, PW-25, sigY);
-    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor.apply(doc, MUTED);
-    doc.text('Site Nursing Specialist', 57.5, sigY+6, { align:'center' });
-    doc.text('HSE Manager',            PW-57.5, sigY+6, { align:'center' });
+    doc.line(sigCx1-35, sigY, sigCx1+35, sigY);
+    doc.line(sigCx2-35, sigY, sigCx2+35, sigY);
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor.apply(doc, MUTED);
+    doc.text('Site Nursing Specialist', sigCx1, sigY+4, { align:'center' });
+    doc.text('HSE Manager',            sigCx2, sigY+4, { align:'center' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(7);
+    if (nurseDate) doc.text('Date: ' + nurseDate, sigCx1, sigY+7.5, { align:'center' });
+    if (hseDate)   doc.text('Date: ' + hseDate,   sigCx2, sigY+7.5, { align:'center' });
 
-    // ---------- Header / Footer on every page except cover ----------
+    // Footer on every page
     const totalPages = doc.getNumberOfPages();
-    for (let p=2; p<=totalPages; p++){
+    for (let p=1; p<=totalPages; p++){
       doc.setPage(p);
-      const w = doc.internal.pageSize.getWidth();
-      const h = doc.internal.pageSize.getHeight();
-      // Header bar
-      doc.setFillColor.apply(doc, PRIMARY); doc.rect(0, 0, w, 10, 'F');
-      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
-      doc.text('Monthly Injury & Illness Report  —  ' + monthName + (projectFilter?'  ·  '+projectFilter:''), 10, 6.5);
-      doc.setFont('helvetica','normal'); doc.setFontSize(8);
-      doc.text(refNo, w-10, 6.5, { align:'right' });
-      // Footer
-      doc.setDrawColor.apply(doc, SOFT); doc.setLineWidth(0.3);
-      doc.line(10, h-9, w-10, h-9);
-      doc.setTextColor.apply(doc, MUTED); doc.setFontSize(8); doc.setFont('helvetica','normal');
-      doc.text(generated, 10, h-4);
-      doc.text('Construction Medical Records System', w/2, h-4, { align:'center' });
-      doc.text('Page ' + p + ' of ' + totalPages, w-10, h-4, { align:'right' });
+      drawPageFooter(p, totalPages);
     }
 
-    doc.save('Monthly-Injury-Report-' + (monthVal||'report') + '.pdf');
+    return { doc: doc, fileName: 'Monthly-Injury-Report-' + (monthVal||'report') + '.pdf' };
+  }
+
+  window.downloadMonthlyInjuryReport = async function(){
+    try {
+      await ensureMonthlyInjuryPdfLibraries();
+    } catch (e) {
+      console.error(e);
+      alert('Unable to load the PDF library. Please check your connection and try again.');
+      return;
+    }
+    const r = buildMonthlyInjuryPdfDoc();
+    if (!r) return;
+    r.doc.save(r.fileName);
   };
+
+  window.printMonthlyInjuryReport = async function(){
+    try {
+      await ensureMonthlyInjuryPdfLibraries();
+    } catch (e) {
+      console.warn('Falling back to browser print because PDF libraries are unavailable.', e);
+      setMonthlyInjuryPrintMode(true);
+      setTimeout(function(){
+        try { window.print(); } finally { setTimeout(function(){ setMonthlyInjuryPrintMode(false); }, 100); }
+      }, 60);
+      return;
+    }
+    const r = buildMonthlyInjuryPdfDoc();
+    if (!r) {
+      setMonthlyInjuryPrintMode(true);
+      setTimeout(function(){
+        try { window.print(); } finally { setTimeout(function(){ setMonthlyInjuryPrintMode(false); }, 100); }
+      }, 60);
+      return;
+    }
+    try {
+      r.doc.autoPrint();
+      const url = r.doc.output('bloburl');
+      const w = window.open(url, '_blank');
+      if (!w) {
+        setMonthlyInjuryPrintMode(true);
+        setTimeout(function(){
+          try { window.print(); } finally { setTimeout(function(){ setMonthlyInjuryPrintMode(false); }, 100); }
+        }, 60);
+      }
+    } catch (e) {
+      console.error(e);
+      setMonthlyInjuryPrintMode(true);
+      setTimeout(function(){
+        try { window.print(); } finally { setTimeout(function(){ setMonthlyInjuryPrintMode(false); }, 100); }
+      }, 60);
+    }
+  };
+
   
 })();
 </script>
