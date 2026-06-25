@@ -8274,11 +8274,20 @@ window.YMCO_showSplash = function(){
                                 <input type="date" id="exportToDate" style="width:100%;padding:9px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
                             </div>
                         </div>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
                             <button type="button" onclick="setExportPreset(7)" style="padding:6px 12px;border-radius:20px;border:1px solid #cbd5e1;background:#f1f5f9;cursor:pointer;font-size:12px;">Last 7 days</button>
                             <button type="button" onclick="setExportPreset(30)" style="padding:6px 12px;border-radius:20px;border:1px solid #cbd5e1;background:#f1f5f9;cursor:pointer;font-size:12px;">Last 30 days</button>
                             <button type="button" onclick="setExportPreset(90)" style="padding:6px 12px;border-radius:20px;border:1px solid #cbd5e1;background:#f1f5f9;cursor:pointer;font-size:12px;">Last 90 days</button>
                             <button type="button" onclick="setExportPreset(0)" style="padding:6px 12px;border-radius:20px;border:1px solid #cbd5e1;background:#f1f5f9;cursor:pointer;font-size:12px;">All time</button>
+                        </div>
+                        <div style="margin-bottom:18px;">
+                            <label style="display:block;font-size:12px;font-weight:600;color:#1e293b;margin-bottom:6px;">Report Type</label>
+                            <select id="exportReportType" style="width:100%;padding:9px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;background:#fff;color:#1e293b;">
+                                <option value="all">All Reports (Physical + Clinic + Injury)</option>
+                                <option value="physical">Physical Examination Reports Only</option>
+                                <option value="clinic">Site Clinic Reports Only</option>
+                                <option value="injury">Injury Reports Only</option>
+                            </select>
                         </div>
                         <div style="display:flex;justify-content:flex-end;gap:10px;">
                             <button onclick="closeExportModal()" style="padding:10px 18px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:600;color:#475569;">Cancel</button>
@@ -8361,7 +8370,19 @@ window.YMCO_showSplash = function(){
             return String(v);
         }
         function _isImageValue(v) {
-            return typeof v === 'string' && /^(data:image\/|https?:\/\/)/i.test(v.trim());
+            if (typeof v !== 'string') return false;
+            const s = v.trim();
+            if (!s) return false;
+            if (/^(data:image\/|https?:\/\/|blob:)/i.test(s)) return true;
+            // Legacy: raw base64 without data: prefix
+            if (s.length > 200 && /^[A-Za-z0-9+/=\s]+$/.test(s)) return true;
+            return false;
+        }
+        function _normalizeImageSrc(v) {
+            const s = String(v || '').trim();
+            if (!s) return '';
+            if (/^(data:|https?:\/\/|blob:)/i.test(s)) return s;
+            return 'data:image/jpeg;base64,' + s.replace(/\s+/g, '');
         }
         function _isImageKey(k) {
             return /photo|image|picture|pic_data|_img|residence|iqama/i.test(String(k || ''));
@@ -8372,7 +8393,7 @@ window.YMCO_showSplash = function(){
             if (key.includes('injury_photo') || key.includes('injury_image')) return 'Injury Photo';
             return _humanizeKey(k);
         }
-        function _reportRowsHtml(reports, fields, type) {
+        function _reportRowsHtml(reports, fields, type, workerContext) {
             if (!reports || !reports.length) return '<p class="report-empty">No reports in selected range.</p>';
             let html = '';
             reports.forEach((r, idx) => {
@@ -8389,20 +8410,68 @@ window.YMCO_showSplash = function(){
                     const v = merged[k];
                     if (v === null || v === undefined) return false;
                     if (typeof v === 'string' && v.trim() === '') return false;
-                    if (typeof v === 'boolean' && v === false) return false;
                     if (Array.isArray(v) && v.length === 0) return false;
                     return true;
                 });
-                // Split image fields from regular text fields
-                const imageKeys = keys.filter(k => _isImageKey(k) && _isImageValue(merged[k]));
-                const textKeys = keys.filter(k => !imageKeys.includes(k));
+                // Split image fields from regular text fields, so injury/ID photos stay inside the same report page.
+                let imageKeys = keys.filter(k => _isImageKey(k) && _isImageValue(merged[k]));
+                let textKeys = keys.filter(k => !imageKeys.includes(k));
 
-                html += `<div class="report-item">
+                // === Injury reports: ALWAYS render Residence/ID + Injury photo slots on the same page ===
+                let injuryPhotos = null;
+                if (type === 'injury') {
+                    const w = workerContext || {};
+                    // Pick the residence/ID (Iqama) photo from the report or fall back to worker context
+                    const idCandidates = [
+                        merged.id_photo_data, merged.id_photo, merged.idPhoto,
+                        merged.residence_photo, merged.iqama_photo,
+                        w.id_photo_data, w.id_photo, w.idPhoto, w.residence_photo, w.iqama_photo, w.photo
+                    ];
+                    const injCandidates = [
+                        merged.injury_photo_data, merged.injury_photo, merged.injuryPhoto,
+                        merged.injury_image, merged.incident_photo
+                    ];
+                    const pick = (arr) => {
+                        for (const v of arr) { if (_isImageValue(v)) return _normalizeImageSrc(v); }
+                        return '';
+                    };
+                    const idSrc  = pick(idCandidates);
+                    const injSrc = pick(injCandidates);
+                    injuryPhotos = { idSrc, injSrc };
+                    // Don't double-render these as inline image rows below.
+                    const skip = new Set(['id_photo_data','id_photo','idPhoto','residence_photo','iqama_photo',
+                                          'injury_photo_data','injury_photo','injuryPhoto','injury_image','incident_photo']);
+                    imageKeys = imageKeys.filter(k => !skip.has(k));
+                    textKeys  = textKeys.filter(k => !skip.has(k));
+                }
+
+                const hasPhotos = (imageKeys.length > 0) || (type === 'injury');
+                const reportClasses = `report-item report-item-${type}${hasPhotos ? ' report-has-photos' : ''}`;
+
+                if (type === 'injury') {
+                    const w = workerContext || {};
+                    const workerLine = [w.role, w.nationality].filter(Boolean).join(' • ');
+                    html += `<section class="injury-report-page" data-pdf-section="injury-report">
+                        <div class="injury-page-head">
+                            <img src="${YMCO_LOGO_DATA_URL}" alt="YMCO" />
+                            <div class="injury-page-worker">
+                                <div class="injury-page-title">Injury / Illness Report</div>
+                                <div class="injury-worker-name">${_escapeHtml(w.name || 'Unnamed Worker')}</div>
+                                <div class="injury-worker-details">ID: ${_escapeHtml(w.id || '-')} ${workerLine ? ' • ' + _escapeHtml(workerLine) : ''}</div>
+                            </div>
+                            <div class="injury-page-meta">
+                                <strong>Report ${idx + 1}</strong>
+                                <span>${_escapeHtml(dateStr || '—')}</span>
+                            </div>
+                        </div>`;
+                }
+
+                html += `<div class="${reportClasses}">
                     <div class="report-item-header">
                         <span class="report-name">${idx + 1}. ${_escapeHtml(reportName)}</span>
                         <span class="report-date">${_escapeHtml(dateStr)}</span>
                     </div>`;
-                if (!textKeys.length && !imageKeys.length) {
+                if (!textKeys.length && !imageKeys.length && type !== 'injury') {
                     html += '<div style="padding:8px 10px;color:#94a3b8;font-size:11px;">No additional data recorded.</div>';
                 } else {
                     if (textKeys.length) {
@@ -8418,19 +8487,39 @@ window.YMCO_showSplash = function(){
                     if (imageKeys.length) {
                         html += '<div class="report-photos">';
                         imageKeys.forEach(k => {
-                            const src = String(merged[k]).trim();
+                            const src = _normalizeImageSrc(merged[k]);
                             html += `<figure class="report-photo">
-                                <img src="${_escapeHtml(src)}" alt="${_escapeHtml(_imageLabel(k))}" crossorigin="anonymous" />
+                                <img src="${_escapeHtml(src)}" alt="${_escapeHtml(_imageLabel(k))}" crossorigin="anonymous" referrerpolicy="no-referrer" />
                                 <figcaption>${_escapeHtml(_imageLabel(k))}</figcaption>
                             </figure>`;
                         });
                         html += '</div>';
                     }
+                    if (type === 'injury' && injuryPhotos) {
+                        const renderSlot = (src, label) => {
+                            if (src) {
+                                return `<figure class="report-photo">
+                                    <img src="${_escapeHtml(src)}" alt="${_escapeHtml(label)}" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                                    <figcaption>${_escapeHtml(label)}</figcaption>
+                                </figure>`;
+                            }
+                            return `<figure class="report-photo report-photo-empty">
+                                <div class="report-photo-placeholder">No photo attached</div>
+                                <figcaption>${_escapeHtml(label)}</figcaption>
+                            </figure>`;
+                        };
+                        html += '<div class="report-photos report-photos-injury">';
+                        html += renderSlot(injuryPhotos.idSrc,  'Residence / ID (Iqama) Photo');
+                        html += renderSlot(injuryPhotos.injSrc, 'Injury Photo');
+                        html += '</div>';
+                    }
                 }
                 html += '</div>';
+                if (type === 'injury') html += '</section>';
             });
             return html;
         }
+
         function previewExportData() {
             try {
                 const fromVal = (document.getElementById('exportFromDate') || {}).value || '';
@@ -8438,17 +8527,25 @@ window.YMCO_showSplash = function(){
                 const fromTs = fromVal ? new Date(fromVal + 'T00:00:00').getTime() : null;
                 const toTs = toVal ? new Date(toVal + 'T23:59:59').getTime() : null;
 
+                const repType = (document.getElementById('exportReportType') || {}).value || 'all';
+                const includePh = (repType === 'all' || repType === 'physical');
+                const includeCl = (repType === 'all' || repType === 'clinic');
+                const includeInj = (repType === 'all' || repType === 'injury');
                 let phCount = 0, clCount = 0, injCount = 0;
                 let workersWithData = 0;
                 (workers || []).forEach(w => {
-                    const a = _filterReportsByDate((workerPhysicalReports || {})[w.id], fromTs, toTs, 'physical').length;
-                    const b = _filterReportsByDate((workerClinicReports || {})[w.id], fromTs, toTs, 'clinic').length;
-                    const c = _filterReportsByDate((workerInjuryReports || {})[w.id], fromTs, toTs, 'injury').length;
+                    const a = includePh ? _filterReportsByDate((workerPhysicalReports || {})[w.id], fromTs, toTs, 'physical').length : 0;
+                    const b = includeCl ? _filterReportsByDate((workerClinicReports || {})[w.id], fromTs, toTs, 'clinic').length : 0;
+                    const c = includeInj ? _filterReportsByDate((workerInjuryReports || {})[w.id], fromTs, toTs, 'injury').length : 0;
                     phCount += a; clCount += b; injCount += c;
                     if (a + b + c > 0) workersWithData++;
                 });
                 const total = phCount + clCount + injCount;
-                const rangeLabel = (fromVal || toVal) ? `${fromVal || 'start'} → ${toVal || 'end'}` : 'All time (no filter)';
+                const typeLabel = repType === 'physical' ? 'Physical Reports Only'
+                    : repType === 'clinic' ? 'Site Clinic Reports Only'
+                    : repType === 'injury' ? 'Injury Reports Only'
+                    : 'All Reports';
+                const rangeLabel = ((fromVal || toVal) ? `${fromVal || 'start'} → ${toVal || 'end'}` : 'All time (no filter)') + ' • ' + typeLabel;
                 const workersTotal = (workers || []).length;
 
                 let modal = document.getElementById('exportPreviewModal');
@@ -8512,6 +8609,7 @@ window.YMCO_showSplash = function(){
             closeExportPreview();
             exportAllWorkersData();
         }
+        const YMCO_LOGO_DATA_URL = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wgARCADIAMgDASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAYHBAUIAwIB/8QAGwEBAAIDAQEAAAAAAAAAAAAAAAEGAgMEBQf/2gAMAwEAAhADEAAAAeqQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD5PpV9Ka/f6KlfL2tyrXXKlrey15YdQAAAAAAxU5XlVmow9bZV9d21x6K1s/R8r7Kt1xlULTuux9XVtHrYnj01v4Nf7K9cCobEdW6DqAAAYPrqIz1eH7zSNscjPPfQedW58mVf7ma9dHPNyVs65xTNzUzyfZ5hFuzd5PRxnf0joGNvQnxybt55eld7X9ob6fksHOnWCQGm3JjxXduLRWVKmXSsSlke5ybkeEyms4XvDLQdGLTNzUzyfae1JJG5J0Vdyd1jydqsN452DIc/O5x6t5S6tw9AN1XAAA0PGvbNKTXre8tn5x7PIFvethTX+c5jNctNaUz1XCef6ZUW1shrtcfwZ9tcvPp7cSRHRFeraktvdVQ2eCAAazTEsVrmk9RDfGxRES5oPc3DH0BJ3hHSUtbim8aHSk4QWZGQh0xAAIr6yHHTH9BO/GM4v7SD5TGtln/iY/hS38TGN/wC36ab53pGmjU++zTfm9+0aXUTX1YxSceHvOAAGjw/CPonGNE/skn5DMomf5gQ8sXCh/wBksQbcErx4lr02TgYuCb7Gh+xRO9L9aFMp3UEnYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB//EACsQAAIBBAEDAgUFAQAAAAAAAAQFAwABAgYHFBU2EzUSFhcgMBARIUBgJP/aAAgBAQABBQL/AGBO3KRSoZoyI/6mWVsbOeQF66mGyN9llE49bSw27xqs6jkaKShS4TYv6EsuEEbnkYMOshdk3G6vjQSCoRwkw8WwATwCMQXELPRFp9S6m71+VZyFnDmCyGZRfkJKhDiL3fMuT5PbPs12sqkmIjoI8nbmUqpIUcQdJrHi8cmUOa3fmoFLORlxdSirdgHK0G40sWxN0dLXIbaP8BZ0AEcjBmwqPT4J5TXCzX4h9szbCnNS2eWgEejsXJU/wrPhv8OseL18pNbiTQSD565PJC8cbzZI7W7SrbUdqi8ySPFwroNsOZl9suEklT9AmxW7gA1ZSy4wRNT8mjEFV2nSB4rkT6+R0rzkyf4jToPRXax4vWt+PzDxE4Zaep6rkDyeyk3IVbtLNTWrbxk9LnGiKxjHyg+5usjbr/8AoTMds2XAjWtRU92dbB/CJT/LVzBcB1uptjne2D9KPrHi9a34/wDpyB5PoXiuzLBCE/Hnkv4OQ0f72+K97aEp6BRsPsSj3bkAb0NhhxyPM5Jt8LHWPF61vx/9OQPJ9C8V2D2HjzyX8D+37o6R+ybF7Co925MG/jUR+p2Pkv3LWPF6hcHjYx7Y4ipNujidpyB5Or3JkoEJ5DYlh8eeS/gPG60D6ZSUCN0YTITr14fHOYpeyovmADXdKujY7PqWWwkq9PyXKvpbJX0tkr6WyUv42kCP2LRM3jT6WyV9LZK1zRs0LP8AvzZZkUXKVLAuIOYuXjqKQJ2fkHDmfDEGezvmEHkRi/mN7fXdhrMsSI85vmAa7WGbGeFU1xImsxGvbNvBg0mMgJoNhLIr1mbMzGIiOe9mU9mH2Ha4KeUIgHEhASDoslybE02+lhZVfUA88I9MFxix16McSwbknDEbOV/Ejyclj60vFJ+Tg/2j00OKodUEDkMTZsmqlRBcb5RBxqBZghoPWusyh08KGT7L5XtXr51cmSutlq50tq7hLV2U1q7pNXdJq7pNXdZq7pNXdJq7pNXdJqsxmvVj5b11stYlSXq0+dWkve32EOhBMpdkBhku1GtbF4LmThsIcmGWwi4DkuRhACHYYt+6jdyh2AOckTYgTJBthDLnxci5DYbADJGe0gXXm2EOKrPgcp5tkDgxsXH0uGxhZQAtx2En2NVHXNc1jDAIlWdBUqkuNjdKdfHJOUSC1V5zgxa2bhl2Nl64aEsUwPWS4oYQDycR1J9oZ9ZM9JkKVG2xiYiMY9Tn9OJSbdIwGIbKyh2TAHCJhky/3/8A/8QAOxEAAQMBBAUHCAsAAAAAAAAAAQACAwQFERITBiIxUWEhcZGhsdHwECA0NUBBgeEUFjAyM0JQcoKiwf/aAAgBAwEBPwH2+lsWpqBjfqN3lWvMyzqrLi147hrcVDUxVAvjP2ABJuCZZ+DWq35Y/t0d6FpUlEbqSPW3u2/AK1LdmxYZSXHqVhWeLYozM52F3Uq7RWWM42s+Le5YaumNx1x0FR1Echw7DuO3zQY2jFIVHX3tvpjcN429PgKOtmq5XYeRovUEjhMyR29Wjr1L+HyWhHq486+sckUjmSMvAPMmS0tt1YBbyBp7RuVVozHNf9HeDwPep6Kehkyn9fL1oeVzQ4YSpHSUBkgGwqjgyaQk7TyoMvpi/cVfmxzTHh2rQj1cedVH4z+crRz0w/tPaFM4ttF5afzntWkXpnwH++badLLO9pjF6LTk4ffcoKKYUskbm8p2JtFMKJ0eHWJWitXDZ1FlVTsJv8bE60rJf94g/wAfkm11nQ1okiIDcJ2D33jgnVVivdjN1/Me5W1UxVVTmQm8Xew3LAfBCyneCFku4dIWS7wQsh/DpCyXcOkLJdw6Qss+CFgP6v8A/8QAIhEAAgEDBAIDAAAAAAAAAAAAAAECAxExEiEwURNAIDJQ/9oACAECAQE/Affc0iN2t+LV0aW8iilgnPSxVE+C3fwrZPEb00Kr2Jp8NbIsFXAvqU8cNSLk9jTM0ycdy0yCst/TuXLly5f9n//EAFAQAAIBAwEDBQgLDQYHAQAAAAECAwAEERITITEFIkFRkRQ1YXFzscHSECMyNFJygZOjsuEGIDAzQkNTdIKhwtHwJEBEVGJjFVBgcJKi8fL/2gAIAQEABj8C/wCsBbvdqX6dPOC+M0JInWRDwZTkf3UknAHSaKW/9tm/2zze2tipfS3+Htwf6NGVljhPRG7841nE1r+9G9BoJyhFsm/Sx717KEsEqzRn8pDn+4l5HWNBxZjgCjHZL3ZL8Lgg/nWZA0dseGv2uPs6aDXszXLfAXmr/OuYkNpCOJ3KKuZo5xJFbDMjKDu/nR2E0Vyh4rx7RRaJTaSdcXDsrbWEhlA6YDv+Va2PKluVYbjIgwflWtpbTLMv+no/CmWeVYox+U5wKMHIlnJfy/pSvMH9fJQl5Zv9C8dhHvx6B++tccCal/PTbz9lPBbXCzSINR0bx21LNA+ibIVWx4a13EzzN1u2a+6DyX8JoOjFGHBlODQV5Bdx9U3HtoLcq9m/h5y9tZZYbyPodd+Plrb8lXr2so4Kx9NaOWLJpoR/iYf6x5q1Ws6yda/lD5PwOueVYh0Z6fFWmwtO5o/8xebuxOPbQn5Tnl5Tn/3ThB4lFCOSSODHCGMb+wVynLaQGGG2gZhLJxLY3bvkrNzcPN4GO7spE/Sxsnp9FWsXw5dXYPtoN0Gvug8l/CfYiuY7UzQyKHBjOT2VoljaJupxg1YbN2TVOinScZGqpbOe2MkKhTrjPO4dVAQ3Shz+bk5rVtVjNrcdE1sdBrBKcqwf+Eo9BrZgmKfphlGl+z77CybMdYG+jdTssZ4baU5Y+DPH5K7kg15xlXYYDU8jnSiDUT4Knun4yNnHUOirpGGJZLaSSTxlajiHF2C1YycMSqD5qsofgxlu0/ZXJzfpFd//AGx6K+6DyX8J9jk79XTzVomjSVep1yKiuEtRDLG4cGM43g9VXHxU+rS3K2srW7cJFXIoCG6YoPzcnOWltJrYRzFSdaHm9laZY1kH+oVhJGZPgyc79/H76a1k4ONx6j0Gv0dxbv8AvFW+wOGveI+CB7r9+6oVYZhj9sfxCuUP1d/q1Z+WTz1dxjdomOnt3UWHARJjsz6a5Hj6RaDPjr7oPJfwn2OTv1dPN7Nx8VPq1Z/t/XNX8sltE8qQOyuV5wOnrqPybeb8CvKcS8OZN6D6KAzuHCu6HHttzzv2eiuUPIP5qsvLJ56Z/wBNGr+j0VDGTlnKx+irMDhsfTX3QeS/hPscnfq6eb2bj4qfVqz/AG/rmuUv1aT6pqPybeb8Dyhn/LyfV9jk/wDV4/qiuUPIP5qsvLJ56sbj4yH0emrJep9fYM1aeS9NfdB5L+E+wFivbiNRwCykCt3KE37RzVnBJda45JkRgY14E+Krj4qfVpLaBo9imcBkz4antpYrcrKhjJCkHeMddR+Tbzfgbm31adrGyaurIrvgvzX21bwZ1bKNUz14FXFtq0bWMpq6s1BN3crbNw+NnxwfHS2+02JVw4bGa7qa6E2FKhQmKilFyINCacFM1yjZ91BzdLp1aPc7jXfFfmvtrvivzX213xX5r7atrju9W2Uiyadnxwc9dSXYvBCGAGkx54Dx13xX5r7a74r819tLdm8EwCkaQmPT/wAgeK3m2UkZGpiur5KlsrW5A5SjjVzIyYBz/wDKiSeQ28lkhFwkZ5shPD+vBXKNvbysLmCPWcePfg0syXTxrozs44dox8NLdO2mIgEZG/fVjc2z+1SXEYY/6ScVyislxm2CJIsbDhn/APNbaeXawzSqkelMaM9dCx1f2grnGN3ip4ldTImNS53ilsF1NISV145oYDOKSVDlHXUD4KktmlaaVBtNrstCsueioztV9sxp8OTgUliQ+0ce6xzc4zjPXir23Mz25twDI45uBxzmr7uQSTSxZ2Jn904IyD56kmmvJprkcySB10CI/F9NOI3VyjaWweBoSGSH/h7jm8/f8bh1kD71rhnnilYYYxSac1cxq8z7ddDNI+Wx4O2pJoNvMzDBBbV01fyvbTW9vKjR4mPObUd5A6B/Ohme7OBp/HdHVRV5bqQfk65jzT1itD3F1J0nMvT11exwzSmW4j2e0mfVjj/OlS/e2NuhDMtuuXkwc9O6mvo7C5CRZY7Q4LtpxzQalv71JLGRuZGkL4bSOljUdwkHt6D3ZPHwnw1hZrpE+AsxwK5s92BjGBN0dVRzI1xK8WCqNLu3cBUt33FdWyINbYlGuVsYGnfuq6WSG6Am5jrdyZLAeLx0NgZ7UYxiGUjPjqae3iuL2WQc7MgLbuHGpb282lrcztqaK3k0gDoB66ibaXDbMjCtLu3b8fe+5Jr3vJ2r/Ovek3anrV7wuO2P1q733PbH61d77r6P1q723f0fr13su/o/XrvZd/R+vXey8+j9eu9d59H69d67z6P1672Xf0fr13su/o/XrvZd/R+vXe66HzfrV3vue2P1q94XHbH61e85l8ZT1q97S9q/zr8Ww8ePvbhZZNDQKGcY6Dwx10ysz4Q6Xk2Z0Ieomrs691r+N3cN2aWBNo7kKSVjJC6uGT0VNIDJsolLGTZnSQOOD00szLOqs4jXVCwLE9QpbubXHCTjnIc9lWgeX31jZYGc/wBZruDaf2nTq04oQK7hy5jBaMhSw4jNKqOy6gWUyIVDAccE1HGjONp+LZ4yqv4jVvOHOznkESHTxbOKuHWXIgcRyc07iTioxKWMknuI41LM3yCk3yuzJtNKRMSq9Z6qtYhOC1yuqLduNKx2pVmKgrExGc4x+6u6GJji06iZBpwKeYtJHGoB1PEw1Dox108aa0lTeY5UKNjr3/e8nXGz1LEx2hz0cR499X3JyWyPHcSswuTIMAMekcc1ylBBAJ4rxFUSmQDRzdJzVs1rCYWTZrJciXmyIBvytXyQ25tIJYWHc5mDq0h+D1VaQbGeDZ3SSMWudbacHJBzuq1gj1TbOeNmMrZJUHfS68OIJo0g535kPqz5uyl5QyndHdO22GN+n3ONefg1BcFTIBdSM0TPzVVuDjw1bq+TrgmhcO+RAWzhlrku3ntlt47JldpdoDr0jAwKsLF4FWK1udt3RtBhgCTw49NK8KgSvMRMmr3SbTUDVtf20IudEbRNFq0nxjNXF4lks3dUaZQSj2thUMTEAx2pCyqfcy7TUKtIpIx3Qt2JpAGHDXmr22aMW7tlIzqzqHQfBUCtZJDJayRyqDKCJCvR4Kk5SNmEcQiBIDKMnnZJz/2A/8QALBAAAgIBAwMDBAICAwAAAAAAAREAITFBUXFhgZEQofAgsdHxMMFAUGBw4f/aAAgBAQABPyH/AJfiFc0ohPCKECZNgidx/igbDMkQEZ5dJAnr+Lh8YxJiOqvuiud/BDA7mHYEm2P7ENp6We5kOzmHlCD/AAQzjYIDqTGcgrXuc9nmCJ0MKPGXK5vfP9u8iEI/MgD+YwWDoAiarZpEA9URTqWO8ZC/hOvChztUhjqZ4uaG3DOT+vE3v618hkd/5cjjRfcgFookDr7+YBsmp8S6wlxYSL6s12KK2ZaAa6D2jf0tCnaj0c6yfCcbejNsOkB3iktpPw35cag9R9lfkQQP1EAuAWJkKokuFtcgwoKIJBrcqFGiGxchX/CKFGm2ewZJ6COQjaZPtf0QRFWPscAdIHJj/XsUXkHwujtajrpH32RRcYCX0h7ROzb8In4QgUsIB4X59WSLWZSiGN3tC4K63xGZGdqwDB3EDhAVTAm1HyINpK9sRz2cQEi0Cd6r2lEnrQ3x2MQzAy4u7PIY+rkBhHtdDwY3L3I6YTLWkcppsYGg1wze0FHIl6AGTH6NgXAHYITmtRM12CHaYTQckqMgoUbAlvYmWBpfYmmEffPqM/KbYdEnSeIwomd0NgbNNp81sjniNaSjYxYM/wDOSsRx2UGWA3y6rHkwdD5YDEdxsYg3Yqcf2P6qmfg81nU+FJ7iF5KoN4T4azc1Pg4B3KHmFT+JQUd/tZkZ3hb2KELY3gRnVaSuos+59WflNvr81snuZRFCaoEQRl/E1n6QA2x8W0JUI4BNCYgnF8gcfue8+P3z5LbE2EO4TVaOPgfZQYAgQDv9WflNvr81snuf47maAOAIZfL1gfDb58ltlQGpfgwoJj3l/Se4/f6sjFqg0GyBmUnw5gxbwAQQbDaz5rZDv1DkZJXyTAMb3QEIjHXb+Jo4Br0HYDXefuEdLYaoB+0ICY6B0JqE6JfYoFeEQAlR0gQkxvBLC0CSrbOjgnxrRtvIh+JsKYGHeZ+9z+9z+9yRIKwYoI+EY2lREDMfvc/vcvNS7mN2/wBAdE1sSN0Y0+8T31eyOBYDbdQDa4BUuOhAfTY44cwAigHULB5hogIRwQQTc0AKJNXmP5+iNoCFk3iHfBfkbodLTie3UYiGDoA3mEElg7QqLOw7fWFi2B2Adt1a2gtLkPJwxL0QBygfdRfxOuBiFPKytJZ2Bh4PWBOoD6bAck1GrEWnfchbLeCSFrsYKGxA+DLsdGMZKa1KDYCUp3dsCcfDhJIhuVoes5i/0MBBm8wrC+kbRBHThy3A/RKQi0ygYrhMrUCtbgKvOzO0iVfAzAEWVdrHSb1dFtdSGreXFALuu7h0W2h1RdLQybMCMAxCwMRwYCExlwCVkvQdx6MCL6AyT9gJfeQBJJkI6ByuEJabBhbAbRFQDkAh0aWfMtLSWWXADiGYW0gFAAQ5OGNqLhpIli2sJ6NYO2Jeom4n+Q8pAVf2qNy9lowhlTJ3MB1qGCpAE2YFfSYrjr8wgdvEIQydB6BLqxxD++jqlwfUEEItaX7eQNoc/RCCCAPfGJZef0K0PfxPEFjBzG7Hpy/L6THiWHslyVWsSf0I5ezQMO8ksgfA3raEMSg7NYJhvDOpGjOqkkO0Ei4AxEihnBxCJjQJuSrViWAiBu1I9BTzPfFks5w1amPoKyQVEwiWz00wEVDxNwsnLgjLHjEsIAtLBh2ocWIdbPWFyYQhbK2IlWQ2zED3RwYkCTzoaNGOhgqhO4DLKoesRGJdYGxAaTLSFE4y6RQ9ANBYQMfStgwmVCSOiDB5nWGw7J0h9/ohCpNneoUJ4XWgGcnQfeE5/wDBIOznK4hvGCuAAmSlICK3bUQSJOahwGlgwURXm+qEuzSWpdESClBnhCkgUGk83KcEpoAPWgVBbewyKAVh6uCjnMSBqBiJpA1TsFw8wuUYMokIQAlglITSiDRFIRJyL0g3T99NaoWHtBzqqgNMt7GHNCYWBPWrbSGSMFEsFgt4t3DUl2FBaD/oD//aAAwDAQACAAMAAAAQ8888888888888888888888888888888oP788888884hXRumD78888qalCF/6iqQ08881hDw/8rQ+8888wvTW+cm8188840www0084w088sqzLCdTXS+d88LXxZRbY89w08888888888888888888888888888888888888888//EACkRAQABAgQFBAIDAAAAAAAAAAERACExQVGRYXGBofAQscHRIEAwUPH/2gAIAQMBAT8Q/exqJHRbcDHeDjUAkJBfNJa2lp6tRQvDM6fwAglagANBuuRubKFEVg4rkWOnUp8+CYmB0LTbTrV1sJYmHLHv0pZITNv8u3Wpa2a2d7PvUaLokbHHpP4oLA0tutjnDyo1BeHcS78wRaVKqGpzcYldcbaUjS2St8yezSWmBPh7tdw+aBTQJFUDGcj2pLdyGzNhFXgXHag7BclhODBOQ8awkuMLBlAl3nkUlLkeqMZEhrAKbPBz2kePKo4WVbWNveoixHZH5ClZ+e6XwV3D5rzGr6EG4DkWz1h+V/xRYwM3DPilLUcjrEVAugRJeL60ybAxJgRnMa0kxCiFt0JV450msc5CqXIWBkN4pq87MxszM2xTQexRMJcXUP0Rv+lDYJ4caEzPDjXm+yuX4ca8H2V5vspHwe9J5nhxpDFNz7pI/tv/xAAgEQADAAIBBQEBAAAAAAAAAAAAAREhMRAgQEFRsTBQ/9oACAECAQE/EO/xyyx6kjJPxdYW/B7fHpGsDFKHnjDJ058Ev2IkuFo0kNJpjWK/IxaiWrp3kbr50mg+olW+urTPI3kuRQaCVr6OJtRLUQ+fZLyQRyUv9f8A/8QAKhABAQACAgEDAwQCAwEAAAAAAREAITFBUWFxgRCRoSAwwfFAsVBg0XD/2gAIAQEAAT8Q/wC3qBVgduPiE/A6CpdSs7mQUKePkRH/ABU5QEAOVXgyjNMT2ZR+PuMoE4PeMaLi2ncM3GPmfZ+wB8zJXKRZnT/6k9Mp6kSh67/newzjlwNPDOHyOz/B9YYLoEAHvmyrtj5CjR4APWDsqpB6eDOofrkFvGsfRR+U9nI2nQK/Lyvqlzl/vc4LwN54C7kui6+yAZvZlHLfXiemXMP5pnXC+icMvGtX7TflR6YDR4rbPA8X0A/u8ZLqXpVz6cuKRiyzpGkerHq4Fv0p7YETqBPa4PL87D/XIyzGysFQDmTk4JC/hYUAizzPXHnVnskFg9CH0Ra19AnyBEfbNfZisz0hfqvZmmqBdb0GPcT1wJlewcXX2Ryo2KN7Wl6Ke8USFTnyT2a9HLp3+grhvVkel/ZWPf2mW+iFfGcQV2A87V7Gfkxze8gPDvcFPTAAhQJHiDR8oHri3hoFmBpCivRq5CbNBf0J8QYm4BjwwDEghCPIz+clRHmohP8Ap9/qjGRt7YEu8THPxo4+Ac6rWsZiSgojpHDSNII6e1WfkzyBrEvSI/eMBfE1n2x9WvXJuqpXyx1HlR7zTVgb9umf/U/VUsDbL3F+T4MTw2ndF6ECNADAMqtHpvqa7dAaWcbglWkewLkTiGWf4L8GaVIiQMj9R95ecUCPfoh+XGullqPiPKKfZXmyU4edN+x/Qik5qLOnwJkhMT+CS60U6d/QCbPW3r2BIBucYvovpIOlU+/CE0JsdR+BwJsQ/NwjsOkiZLEcLQ8K/l9M/UFRwLUth7A9yneQNK+Oz8oT2R8OBTDLqBV86eocbhrpVAr5qx4fDHTox+EcFbgOZxU0CSzfcsNo6hoRp8rKnU/Ej8p+wikAi0jxHx1EIg89ftVdAFHnkvbSfXxcuv8AqNWsOq5HohRyB8g+yfH1Vn+UFENIFfOj84uTv+mr8AfGBEaBwAAf4SKQCLMVDZUgpRR+EH4+trT6SHxd7I3zN+MWO0fpBfuf0MUS6cLy4AQDxJkzT+H/AEuDzWnC8AFFu/QCuG0ucMEXY57x1d57wKoEn7So0x3Dd1RZtKcfQaiIchDhKsu0rgqxOG15BZbKY0BEGDYrl0syjd0yV4cg++sv2WFRtnUEneJbkmK3sJcyZUULp5lr5eTj9ECBAQl+SnnDLpY84P2ax2GBbLx9YECtTCR1WuD2/wCAiC7kgumxRvqPglrhRiqDOgCj1jMOSeTPKKiqAVZKadanHg8HwxyMiOQt44N6gCVqCsN/QAEiUwAFXWMr+ltLHa1DnSPLj7wwG06NApwtc1S5MvBh2uQmE08A59+TsD6d58zsp7TDIGvkKbMDkR63AtrLgJdWiAcUo1RJ9kyy6pQ2dLiR4KOzmzizWhCSwgu9poUuIyeuy67iRyrhm3JBZ0wmiWdGHlrAAFBRAwXtuGvHd91i5dBLQeGMPWoJGFlwKayESAupDvIubh6tf0GBF1kxktQ1nD0t6Eks1123DE3MHZvkCpVV0riQudhB1RmjdUqwMdklOppF0cLwyKLCo86fAeBRIuspFth7jSd1bvfOPVujYOzECyGWfchoBQVSgeQDWKzpRDSe1pCsJJgc9PbK1a010LeBJFL8AVqqWVVcTb6OA7gzbjIAulmTFBpwdVOcUGistqhJQo0C4rT0PLo0gpVCEuyCkINpqo+PtfdDATJaBFdqVXQHWAaNOnUDuqsVJCykFiThF1VQVeMIN0/RKZKumv0qgQOWR+4xoEvDs/fCZEnkn74TefOXUHq/pKsun5Tcf2eX9nkRRngf5fRbeb7t/DH9nl/Z5f2eVw+g/h5jAexPz9PdMveEP5cqlPj+Bkote5T7M/TexKOpwHJHJFHCQZlsIRmUEXSxkci4tglnw9flgoIRYAsKwlHO5gAz+0XWxJFeZQXA7vtNtpU3BODswWokbQBOk8nHvnURZKzoNnKz8sGfA9IJGvINlm8WggjVFpkdX/Zl07BVIActjqPhxIssthQfpPO+ri1e+ykEURV1rIHhIHNoqnI1p8ZOeJcFZFQbXjI4GU7E2U0Ti64zv6KBYGsRDQ0kusVV4uH7JZDk6Q2YhNQogqnIA6S4ZbATqhW0Ap3xiE9LaoIq8l6vJ+k7apm6MOgURlbhekMtGbYaaIs8bijaywnhES+PYSrD62foujoekTOWsij15DsoQcXutuFPFHkq0OcboQRUFy6dcvGNZW3aEnQE1BI6qAHyK0Lkv5QvPCfzYEeA1No4CYI66FEVRqhp3fMJCMd0SEu6YeZsyHZANfBNtE53pybKHlvds+5Oph66u8ubFIijOOdH6tLrywcCu9GHaBoBgOJ+w6HY1c1LjCOrQ8kFeucF9mlUkihkd0ec4RjFrCtaR7wneMfXZOFyQvIseL/8A//Z';
         function exportAllWorkersData() {
             try {
                 const fromVal = (document.getElementById('exportFromDate') || {}).value || '';
@@ -8519,12 +8617,16 @@ window.YMCO_showSplash = function(){
                 const fromTs = fromVal ? new Date(fromVal + 'T00:00:00').getTime() : null;
                 const toTs = toVal ? new Date(toVal + 'T23:59:59').getTime() : null;
 
+                const repType = (document.getElementById('exportReportType') || {}).value || 'all';
+                const includePh = (repType === 'all' || repType === 'physical');
+                const includeCl = (repType === 'all' || repType === 'clinic');
+                const includeInj = (repType === 'all' || repType === 'injury');
                 const filteredPhysical = {};
                 const filteredClinic = {};
                 const filteredInjury = {};
-                Object.keys(workerPhysicalReports || {}).forEach(k => { filteredPhysical[k] = _filterReportsByDate(workerPhysicalReports[k], fromTs, toTs, 'physical'); });
-                Object.keys(workerClinicReports || {}).forEach(k => { filteredClinic[k] = _filterReportsByDate(workerClinicReports[k], fromTs, toTs, 'clinic'); });
-                Object.keys(workerInjuryReports || {}).forEach(k => { filteredInjury[k] = _filterReportsByDate(workerInjuryReports[k], fromTs, toTs, 'injury'); });
+                if (includePh) Object.keys(workerPhysicalReports || {}).forEach(k => { filteredPhysical[k] = _filterReportsByDate(workerPhysicalReports[k], fromTs, toTs, 'physical'); });
+                if (includeCl) Object.keys(workerClinicReports || {}).forEach(k => { filteredClinic[k] = _filterReportsByDate(workerClinicReports[k], fromTs, toTs, 'clinic'); });
+                if (includeInj) Object.keys(workerInjuryReports || {}).forEach(k => { filteredInjury[k] = _filterReportsByDate(workerInjuryReports[k], fromTs, toTs, 'injury'); });
 
                 const totals = {
                     workers: (typeof workers !== 'undefined' ? workers.length : 0),
@@ -8533,7 +8635,11 @@ window.YMCO_showSplash = function(){
                     injuryReports: Object.values(filteredInjury).reduce((s, a) => s + a.length, 0)
                 };
 
-                const rangeLabel = (fromVal || toVal) ? `${fromVal || 'start'} → ${toVal || 'end'}` : 'All time';
+                const typeLabel = repType === 'physical' ? 'Physical Reports'
+                    : repType === 'clinic' ? 'Site Clinic Reports'
+                    : repType === 'injury' ? 'Injury Reports'
+                    : 'All Reports';
+                const rangeLabel = ((fromVal || toVal) ? `${fromVal || 'start'} → ${toVal || 'end'}` : 'All time') + ' • ' + typeLabel;
                 const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                 const generatedAt = new Date().toLocaleString();
 
@@ -8562,9 +8668,9 @@ window.YMCO_showSplash = function(){
                         <td style="border:1px solid #e2e8f0;padding:6px 8px;">${_escapeHtml(w.nationality || '-')}</td>
                         <td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center;">${_escapeHtml(w.age || '-')}</td>
                         <td style="border:1px solid #e2e8f0;padding:6px 8px;"><span style="display:inline-block;padding:2px 8px;border-radius:10px;background:${statusColor}1a;color:${statusColor};font-size:10px;font-weight:600;">${_escapeHtml(w.status || '-')}</span></td>
-                        <td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center;color:#15803d;font-weight:600;">${ph}</td>
-                        <td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center;color:#a16207;font-weight:600;">${cl}</td>
-                        <td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center;color:#b91c1c;font-weight:600;">${inj}</td>
+                        ${includePh ? `<td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center;color:#15803d;font-weight:600;">${ph}</td>` : ''}
+                        ${includeCl ? `<td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center;color:#a16207;font-weight:600;">${cl}</td>` : ''}
+                        ${includeInj ? `<td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center;color:#b91c1c;font-weight:600;">${inj}</td>` : ''}
                     </tr>`;
                 }).join('');
 
@@ -8572,16 +8678,16 @@ window.YMCO_showSplash = function(){
                 container.style.cssText = 'font-family:Inter,Arial,sans-serif;color:#1e293b;padding:18px 14px;background:#fff;width:780px;';
                 // Top margin space reserved for the running header drawn by jsPDF
                 let html = `
-                    <div style="height:14px;"></div>
-                    <div style="border-bottom:3px solid #0f4c75;padding-bottom:10px;margin-bottom:14px;">
-                        <h1 style="margin:0;color:#0f4c75;font-size:20px;">YMCO Medical Records — Export Report</h1>
-                        <p style="margin:4px 0 0;color:#64748b;font-size:11px;">Generated: ${_escapeHtml(generatedAt)} &nbsp;•&nbsp; Date range: ${_escapeHtml(rangeLabel)}</p>
+                    <div style="display:flex;align-items:center;gap:14px;border-bottom:3px solid #0f4c75;padding-bottom:10px;margin-bottom:14px;">
+                        <img src="${YMCO_LOGO_DATA_URL}" alt="YMCO" style="width:72px;height:72px;object-fit:contain;flex:0 0 auto;" />
+                        <div style="flex:1;"><h1 style="margin:0;color:#0f4c75;font-size:20px;">YMCO Medical Records — Export Report</h1>
+                        <p style="margin:4px 0 0;color:#64748b;font-size:11px;">Generated: ${_escapeHtml(generatedAt)} &nbsp;•&nbsp; Date range: ${_escapeHtml(rangeLabel)}</p></div>
                     </div>
                     <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
                         <div style="flex:1;min-width:110px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:8px;"><div style="font-size:10px;color:#0369a1;">Workers</div><div style="font-size:18px;font-weight:700;color:#0f4c75;">${totals.workers}</div></div>
-                        <div style="flex:1;min-width:110px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px;"><div style="font-size:10px;color:#15803d;">Physical</div><div style="font-size:18px;font-weight:700;color:#166534;">${totals.physicalReports}</div></div>
-                        <div style="flex:1;min-width:110px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:8px;"><div style="font-size:10px;color:#a16207;">Clinic</div><div style="font-size:18px;font-weight:700;color:#854d0e;">${totals.clinicReports}</div></div>
-                        <div style="flex:1;min-width:110px;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px;"><div style="font-size:10px;color:#b91c1c;">Injuries</div><div style="font-size:18px;font-weight:700;color:#991b1b;">${totals.injuryReports}</div></div>
+                        ${includePh ? `<div style="flex:1;min-width:110px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px;"><div style="font-size:10px;color:#15803d;">Physical</div><div style="font-size:18px;font-weight:700;color:#166534;">${totals.physicalReports}</div></div>` : ''}
+                        ${includeCl ? `<div style="flex:1;min-width:110px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:8px;"><div style="font-size:10px;color:#a16207;">Clinic</div><div style="font-size:18px;font-weight:700;color:#854d0e;">${totals.clinicReports}</div></div>` : ''}
+                        ${includeInj ? `<div style="flex:1;min-width:110px;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px;"><div style="font-size:10px;color:#b91c1c;">Injuries</div><div style="font-size:18px;font-weight:700;color:#991b1b;">${totals.injuryReports}</div></div>` : ''}
                     </div>
 
                     <h2 style="margin:0 0 8px;color:#0f4c75;font-size:14px;">Workers Summary</h2>
@@ -8594,13 +8700,13 @@ window.YMCO_showSplash = function(){
                                 <th style="border:1px solid #0f4c75;padding:7px 8px;text-align:left;">Nationality</th>
                                 <th style="border:1px solid #0f4c75;padding:7px 8px;text-align:center;width:42px;">Age</th>
                                 <th style="border:1px solid #0f4c75;padding:7px 8px;text-align:left;">Status</th>
-                                <th style="border:1px solid #0f4c75;padding:7px 8px;text-align:center;width:50px;">Phys.</th>
-                                <th style="border:1px solid #0f4c75;padding:7px 8px;text-align:center;width:50px;">Clinic</th>
-                                <th style="border:1px solid #0f4c75;padding:7px 8px;text-align:center;width:50px;">Injury</th>
+                                ${includePh ? '<th style="border:1px solid #0f4c75;padding:7px 8px;text-align:center;width:50px;">Phys.</th>' : ''}
+                                ${includeCl ? '<th style="border:1px solid #0f4c75;padding:7px 8px;text-align:center;width:50px;">Clinic</th>' : ''}
+                                ${includeInj ? '<th style="border:1px solid #0f4c75;padding:7px 8px;text-align:center;width:50px;">Injury</th>' : ''}
                             </tr>
                         </thead>
                         <tbody>
-                            ${summaryRows || '<tr><td colspan="9" style="border:1px solid #e2e8f0;padding:14px;text-align:center;color:#94a3b8;">No workers found.</td></tr>'}
+                            ${summaryRows || `<tr><td colspan="${6 + (includePh?1:0) + (includeCl?1:0) + (includeInj?1:0)}" style="border:1px solid #e2e8f0;padding:14px;text-align:center;color:#94a3b8;">No workers found.</td></tr>`}
                         </tbody>
                     </table>`;
 
@@ -8608,25 +8714,33 @@ window.YMCO_showSplash = function(){
                     const ph = filteredPhysical[w.id] || [];
                     const cl = filteredClinic[w.id] || [];
                     const inj = filteredInjury[w.id] || [];
-                    html += `
+                    const renderPhysical = includePh && ph.length > 0;
+                    const renderClinic = includeCl && cl.length > 0;
+
+                    // Keep normal medical/clinic summaries compact. Injury reports are rendered
+                    // separately below as one complete A4 page per report with photos attached.
+                    if (renderPhysical || renderClinic) {
+                        html += `
                          <div class="worker-card">
-                            <div class="worker-card-header">
-                                <h2>${i + 1}. ${_escapeHtml(w.name || 'Unnamed')}
+                            <div class="worker-card-header" style="display:flex;align-items:center;gap:10px;">
+                                <img src="${YMCO_LOGO_DATA_URL}" alt="YMCO" style="width:36px;height:36px;object-fit:contain;flex:0 0 auto;" />
+                                <div style="flex:1;"><h2>${i + 1}. ${_escapeHtml(w.name || 'Unnamed')}
                                     <span class="worker-meta">— ${_escapeHtml(w.role || '')} ${w.nationality ? '• ' + _escapeHtml(w.nationality) : ''}</span>
                                 </h2>
                                 <div class="worker-info">
                                     <span><strong>ID:</strong> ${_escapeHtml(w.id || '-')}</span>
                                     <span><strong>Age:</strong> ${_escapeHtml(w.age || '-')}</span>
                                     <span><strong>Status:</strong> ${_escapeHtml(w.status || '-')}</span>
-                                </div>
+                                </div></div>
                             </div>
-                            <h3 class="section-title section-physical">Physical Examinations <span class="count-badge">${ph.length}</span></h3>
-                            ${_reportRowsHtml(ph, [], 'physical')}
-                            <h3 class="section-title section-clinic">Site Clinic Visits <span class="count-badge">${cl.length}</span></h3>
-                            ${_reportRowsHtml(cl, [], 'clinic')}
-                            <h3 class="section-title section-injury">Injury / Illness Reports <span class="count-badge">${inj.length}</span></h3>
-                            ${_reportRowsHtml(inj, [], 'injury')}
+                            ${renderPhysical ? `<h3 class="section-title section-physical">Physical Examinations <span class="count-badge">${ph.length}</span></h3>${_reportRowsHtml(ph, [], 'physical', w)}` : ''}
+                            ${renderClinic ? `<h3 class="section-title section-clinic">Site Clinic Visits <span class="count-badge">${cl.length}</span></h3>${_reportRowsHtml(cl, [], 'clinic', w)}` : ''}
                         </div>`;
+                    }
+
+                    if (includeInj && inj.length > 0) {
+                        html += _reportRowsHtml(inj, [], 'injury', w);
+                    }
                 });
 
                 closeExportModal();
@@ -8646,7 +8760,7 @@ window.YMCO_showSplash = function(){
                         @page {
                             size: A4 portrait;
                             margin: 22mm 14mm 20mm 14mm;
-                            @top-left   { content: url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20200%2056%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%2300b4d8%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%230077b6%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20x%3D%222%22%20y%3D%226%22%20width%3D%2244%22%20height%3D%2244%22%20rx%3D%2210%22%20fill%3D%22url%28%23g%29%22%2F%3E%3Crect%20x%3D%2220%22%20y%3D%2214%22%20width%3D%228%22%20height%3D%2228%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%2210%22%20y%3D%2224%22%20width%3D%2228%22%20height%3D%228%22%20fill%3D%22%23fff%22%2F%3E%3Ctext%20x%3D%2256%22%20y%3D%2230%22%20font-family%3D%22Playfair%20Display%2C%20Georgia%2C%20serif%22%20font-size%3D%2222%22%20font-weight%3D%22900%22%20fill%3D%22%230a2a5e%22%20letter-spacing%3D%223%22%3EYMCO%3C%2Ftext%3E%3Ctext%20x%3D%2256%22%20y%3D%2246%22%20font-family%3D%22Inter%2C%20Arial%2C%20sans-serif%22%20font-size%3D%229%22%20font-weight%3D%22700%22%20fill%3D%22%230f4c75%22%20letter-spacing%3D%222%22%3EMEDICAL%3C%2Ftext%3E%3C%2Fsvg%3E"); }
+                            @top-left   { content: ""; }
                             @top-center { content: "YMCO Medical Records — Export Report"; font-family: 'Segoe UI', Inter, Arial, sans-serif; font-size: 10pt; color:#0f4c75; font-weight:700; }
                             @top-right  { content: string(reportDate); font-family: 'Segoe UI', Inter, Arial, sans-serif; font-size: 8.5pt; color:#64748b; }
                             @bottom-center { content: "Page " counter(page) " of " counter(pages); font-family: 'Segoe UI', Inter, Arial, sans-serif; font-size: 9pt; color:#0f4c75; font-weight:600; }
@@ -8654,12 +8768,20 @@ window.YMCO_showSplash = function(){
                         }
                         @page :first { @top-center { content: ""; } @top-right { content: ""; } }
                         * { box-sizing: border-box; }
-                        html, body { width: auto; max-width: 100%; overflow-x: hidden; }
+                        html, body { width: auto; max-width: 100%; overflow: visible !important; }
                         body { font-family: 'Segoe UI', Inter, Arial, sans-serif; color:#1e293b; margin:0; padding:0; background:#fff; line-height:1.45; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         /* Ensure media never overflows the printable area */
                         img, canvas, svg, table { max-width: 100% !important; height: auto; }
                         table { table-layout: fixed; word-wrap: break-word; }
-                        td, th { word-break: break-word; overflow-wrap: anywhere; }
+                        td, th { word-break: break-word; overflow-wrap: anywhere; white-space: normal !important; }
+                        /* No content should be clipped during print */
+                        @media print {
+                            * { overflow: visible !important; }
+                            html, body { height: auto !important; }
+                            .worker-card, .report-item, .report-photos, .report-photo,
+                            .report-item table, .report-item tr, .report-item td,
+                            .section-title { overflow: visible !important; }
+                        }
                         /* Hidden element that publishes the report date into the page header via string-set */
                         .print-report-meta { position: running(reportDateRunning); }
                         #printReportDate { string-set: reportDate content(); position: absolute; left: -9999px; }
@@ -8668,7 +8790,7 @@ window.YMCO_showSplash = function(){
                         tr { page-break-inside: avoid; page-break-after: auto; }
                         thead { display: table-header-group; }
                         /* Worker card */
-                        .worker-card { page-break-inside: auto; break-inside: auto; margin: 0 0 16px; border:1.5px solid #cbd5e0; border-radius:10px; padding:0; background:#fff; overflow:hidden; }
+                        .worker-card { page-break-inside: auto; break-inside: auto; margin: 0 0 16px; border:1.5px solid #cbd5e0; border-radius:10px; padding:0; background:#fff; overflow:visible; }
                         .worker-card-header { background: linear-gradient(135deg,#0f4c75 0%,#1e6091 100%); color:#fff; padding:10px 14px; }
                         .worker-card-header { page-break-inside: avoid; break-inside: avoid; page-break-after: avoid; break-after: avoid; }
                         .section-title { page-break-after: avoid; break-after: avoid; }
@@ -8687,7 +8809,7 @@ window.YMCO_showSplash = function(){
                         .section-injury { border-left-color:#ef4444; background:#fee2e2; }
                         .section-injury .count-badge { background:#ef4444; }
                         /* Report items */
-                        .report-item { page-break-inside: auto; break-inside: auto; margin: 4px 12px 10px; border:1px solid #cbd5e0; border-radius:6px; background:#fff; overflow:hidden; }
+                        .report-item { page-break-inside: avoid; break-inside: avoid; margin: 4px 12px 10px; border:1px solid #cbd5e0; border-radius:6px; background:#fff; overflow:visible; }
                         .report-item-header { display:flex; justify-content:space-between; align-items:center; background:#f8fafc; border-bottom:1px solid #cbd5e0; padding:5px 10px; }
                         .report-item-header .report-name { color:#0f4c75; font-size:11.5px; font-weight:700; }
                         .report-item-header .report-date { color:#64748b; font-size:10.5px; font-weight:600; }
@@ -8698,6 +8820,7 @@ window.YMCO_showSplash = function(){
                         .report-item tr:nth-child(even) td.field-val { background:#fafbfc; }
                         .report-empty { color:#94a3b8; font-size:11px; margin: 4px 12px 10px; padding:8px 10px; background:#f8fafc; border:1px dashed #cbd5e0; border-radius:6px; text-align:center; }
                         /* Photos in exported reports (Residence/ID + Injury) */
+                        .report-item { page-break-inside: avoid !important; break-inside: avoid !important; }
                         .report-photos { display:flex; flex-wrap:wrap; gap:12px; padding:10px; justify-content:center; background:#fafbfc; border-top:1px solid #e2e8f0; page-break-inside: avoid; break-inside: avoid; }
                         .report-photo { margin:0; text-align:center; flex:1 1 240px; max-width:340px; page-break-inside: avoid; break-inside: avoid; }
                         .report-photo img { display:block; width:100%; height:auto; max-height:340px; object-fit:contain; background:#fff; border:2px solid #0f4c75; border-radius:6px; padding:4px; box-shadow:0 2px 6px rgba(15,76,117,0.18); -webkit-print-color-adjust:exact; print-color-adjust:exact; }
@@ -8705,15 +8828,127 @@ window.YMCO_showSplash = function(){
                         .toolbar { position:fixed; top:8px; right:8px; z-index:9999; background:#0f4c75; color:#fff; padding:8px 12px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.2); font-size:12px; }
                         .toolbar button { background:#fff; color:#0f4c75; border:0; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:700; margin-left:6px; }
                         @media print { .toolbar { display:none !important; } body { font-size: 11px; } }
+
+                        /* === Injury reports: one complete A4 page per report === */
+                        .injury-report-page {
+                            page-break-before: always !important;
+                            break-before: page !important;
+                            page-break-after: always !important;
+                            break-after: page !important;
+                            page-break-inside: avoid !important;
+                            break-inside: avoid-page !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            background:#fff;
+                            display:flex;
+                            flex-direction:column;
+                            width:100%;
+                            min-height: calc(297mm - 42mm); /* A4 height minus top+bottom @page margins */
+                            height: calc(297mm - 42mm);
+                            box-sizing:border-box;
+                            overflow:hidden;
+                        }
+                        .injury-report-page + .injury-report-page { page-break-before: always !important; }
+                        .injury-page-head {
+                            display:flex;
+                            align-items:center;
+                            gap:10px;
+                            border:2px solid #991b1b;
+                            border-bottom:0;
+                            border-radius:8px 8px 0 0;
+                            background:linear-gradient(135deg,#fff7f7 0%,#fee2e2 100%);
+                            padding:6px 10px;
+                            page-break-after: avoid !important;
+                            break-after: avoid !important;
+                        }
+                        .injury-page-head img { width:34px !important; height:34px !important; object-fit:contain; flex:0 0 auto; }
+                        .injury-page-worker { flex:1; min-width:0; }
+                        .injury-page-title { color:#991b1b; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.4px; line-height:1.15; }
+                        .injury-worker-name { color:#0f4c75; font-size:13px; font-weight:800; line-height:1.2; }
+                        .injury-worker-details { color:#64748b; font-size:9.5px; font-weight:600; line-height:1.2; }
+                        .injury-page-meta { color:#7f1d1d; font-size:9.5px; font-weight:700; text-align:right; line-height:1.25; white-space:nowrap; }
+                        .injury-page-meta span { display:block; color:#64748b; font-weight:600; }
+                        .report-item-injury {
+                            page-break-before: auto !important;
+                            break-before: auto !important;
+                            page-break-after: auto !important;
+                            break-after: auto !important;
+                            page-break-inside: avoid !important;
+                            break-inside: avoid-page !important;
+                            margin: 0 !important;
+                            border: 2px solid #991b1b;
+                            border-radius:0 0 8px 8px;
+                            box-shadow:none;
+                            background:#fff;
+                            overflow:hidden !important;
+                            flex:1 1 auto;
+                            display:flex;
+                            flex-direction:column;
+                            min-height:0;
+                        }
+                        .report-item-injury.report-has-photos {
+                            display:flex;
+                            flex-direction:column;
+                            align-items:stretch;
+                        }
+                        .report-item-injury .report-item-header {
+                            grid-column:1 / -1;
+                            background:linear-gradient(135deg,#fee2e2 0%,#fecaca 100%);
+                            border-bottom:2px solid #ef4444;
+                            padding:5px 9px;
+                            page-break-after: avoid !important;
+                            break-after: avoid !important;
+                        }
+                        .report-item-injury .report-item-header .report-name { color:#991b1b; font-size:15px; line-height:1.3; font-weight:900; }
+                        .report-item-injury .report-item-header .report-date { color:#7f1d1d; font-size:12px; background:#fff; padding:3px 10px; border-radius:12px; border:1px solid #fecaca; font-weight:700; }
+                        .report-item-injury table { width:100%; height:auto; flex:1 1 auto; font-size:14px; line-height:1.45; page-break-inside: avoid !important; break-inside: avoid-page !important; }
+                        .report-item-injury.report-has-photos table { flex:1 1 0; min-height:0; }
+                        .report-item-injury td { padding:7px 10px; line-height:1.45; vertical-align:middle; font-size:14px; }
+                        .report-item-injury td.field-key { width:32%; background:#fef2f2; color:#991b1b; font-weight:800; font-size:13px; }
+                        .report-item-injury td.field-val { color:#1f2937; }
+                        .report-item-injury .report-photos {
+                            display:grid;
+                            grid-template-columns: repeat(auto-fit, minmax(58mm, 1fr));
+                            grid-auto-rows:minmax(0, 1fr);
+                            gap:6px;
+                            background:#fff7f7;
+                            border-top:2px dashed #fecaca;
+                            border-left:0;
+                            padding:8px;
+                            flex:0 0 86mm;
+                            margin-top:auto;
+                            height:86mm;
+                            max-height:86mm;
+                            min-height:72mm;
+                            box-sizing:border-box;
+                            overflow:hidden;
+                            page-break-before: avoid !important;
+                            break-before: avoid !important;
+                            page-break-inside: avoid !important;
+                            break-inside: avoid-page !important;
+                        }
+                        .report-item-injury .report-photo { margin:0; max-width:100%; height:100%; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; overflow:hidden; page-break-inside: avoid !important; break-inside: avoid-page !important; }
+                        .report-item-injury .report-photo img { width:100%; height:auto; max-width:100%; max-height:calc(100% - 16px); min-height:0; object-fit:contain; border:2px solid #991b1b; border-radius:6px; padding:3px; background:#fff; box-shadow:none; box-sizing:border-box; flex:1 1 auto; }
+                        .report-item-injury .report-photo figcaption { margin-top:3px; font-size:9.5px; line-height:1.1; font-weight:900; color:#991b1b; letter-spacing:0.2px; text-align:center; flex:0 0 auto; }
+                        .report-item-injury .report-photos-injury { grid-template-columns: repeat(2, 1fr) !important; }
+                        .report-item-injury .report-photo-empty { background:#fff; border:2px dashed #fecaca; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60mm; }
+                        .report-item-injury .report-photo-empty .report-photo-placeholder { font-size:10px; color:#94a3b8; font-weight:600; padding:6px; text-align:center; }
+                        #printRunningHeader { display: none !important; visibility:hidden !important; height:0 !important; overflow:hidden !important; }
+                        @media print {
+                            body { font-feature-settings: "kern","liga"; -webkit-font-smoothing: antialiased; }
+                            .worker-card-header { box-shadow: inset 0 -2px 0 rgba(0,0,0,0.08); }
+                            .section-title { box-shadow: 0 1px 2px rgba(15,76,117,0.05); }
+                        }
+
                     </style></head><body>
                     <div class="toolbar">
                         <span>Ready to print</span>
                         <button onclick="window.print()">Print / PDF</button>
                         <button onclick="window.close()">Close</button>
                     </div>
-                    <div id="printRunningHeader" aria-hidden="true" style="position:fixed;top:0;left:0;right:0;height:18mm;display:none;align-items:center;justify-content:space-between;padding:4mm 8mm 0;background:#fff;border-bottom:1.5px solid #0f4c75;z-index:99999;"><img src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20200%2056%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%2300b4d8%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%230077b6%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20x%3D%222%22%20y%3D%226%22%20width%3D%2244%22%20height%3D%2244%22%20rx%3D%2210%22%20fill%3D%22url%28%23g%29%22%2F%3E%3Crect%20x%3D%2220%22%20y%3D%2214%22%20width%3D%228%22%20height%3D%2228%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%2210%22%20y%3D%2224%22%20width%3D%2228%22%20height%3D%228%22%20fill%3D%22%23fff%22%2F%3E%3Ctext%20x%3D%2256%22%20y%3D%2230%22%20font-family%3D%22Playfair%20Display%2C%20Georgia%2C%20serif%22%20font-size%3D%2222%22%20font-weight%3D%22900%22%20fill%3D%22%230a2a5e%22%20letter-spacing%3D%223%22%3EYMCO%3C%2Ftext%3E%3Ctext%20x%3D%2256%22%20y%3D%2246%22%20font-family%3D%22Inter%2C%20Arial%2C%20sans-serif%22%20font-size%3D%229%22%20font-weight%3D%22700%22%20fill%3D%22%230f4c75%22%20letter-spacing%3D%222%22%3EMEDICAL%3C%2Ftext%3E%3C%2Fsvg%3E" style="height:12mm;"/><div style="text-align:center;flex:1;font-family:Segoe UI,Inter,Arial,sans-serif;color:#0f4c75;font-weight:700;font-size:11pt;">YMCO Medical Records — Export Report</div><div style="font-family:Segoe UI,Inter,Arial,sans-serif;color:#64748b;font-size:9pt;text-align:right;min-width:50mm;">${_escapeHtml(generatedAt)}<br/><span style="color:#94a3b8;font-size:8.5pt;">${_escapeHtml(rangeLabel)}</span></div></div><style>@media print{ #printRunningHeader{ display:flex !important; } }</style><span id="printReportDate">Generated: ${_escapeHtml(generatedAt)} • ${_escapeHtml(rangeLabel)}</span>
+                    <span id="printReportDate">Generated: ${_escapeHtml(generatedAt)} • ${_escapeHtml(rangeLabel)}</span>
                     ${html}
-                    <script>window.addEventListener('load',function(){setTimeout(function(){try{window.focus();window.print();}catch(e){}},500);});<\/script>
+                    <script>window.addEventListener('load',function(){var imgs=Array.prototype.slice.call(document.images||[]);function done(){try{window.focus();window.print();}catch(e){}}if(!imgs.length){return setTimeout(done,300);}var pending=imgs.filter(function(im){return !im.complete||im.naturalWidth===0;}).length;if(!pending)return setTimeout(done,300);var fired=false;function maybe(){pending--;if(pending<=0&&!fired){fired=true;setTimeout(done,250);}}imgs.forEach(function(im){if(im.complete&&im.naturalWidth>0)return;im.addEventListener('load',maybe);im.addEventListener('error',maybe);});setTimeout(function(){if(!fired){fired=true;done();}},8000);});<\/script>
                     <script>
 /* === FRONT/BACK ONLY MODE PATCH ===
    Disables 3D rotation, locks the body diagram to two static views
