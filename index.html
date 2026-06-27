@@ -8901,25 +8901,24 @@ window.YMCO_showSplash = function(){
                         }
                         .report-item-injury .report-item-header .report-name { color:#991b1b; font-size:15px; line-height:1.3; font-weight:900; }
                         .report-item-injury .report-item-header .report-date { color:#7f1d1d; font-size:12px; background:#fff; padding:3px 10px; border-radius:12px; border:1px solid #fecaca; font-weight:700; }
-                        .report-item-injury table { width:100%; height:auto; flex:1 1 auto; font-size:14px; line-height:1.45; page-break-inside: avoid !important; break-inside: avoid-page !important; }
-                        .report-item-injury.report-has-photos table { flex:1 1 0; min-height:0; }
-                        .report-item-injury td { padding:7px 10px; line-height:1.45; vertical-align:middle; font-size:14px; }
-                        .report-item-injury td.field-key { width:32%; background:#fef2f2; color:#991b1b; font-weight:800; font-size:13px; }
-                        .report-item-injury td.field-val { color:#1f2937; }
+                        .report-item-injury table { width:100%; height:auto; flex:1 1 auto; font-size:12px; line-height:1.45; page-break-inside: avoid !important; break-inside: avoid-page !important; }
+                        .report-item-injury.report-has-photos table { flex:1 1 auto; min-height:0; }
+                        .report-item-injury td { padding:7px 10px; line-height:1.45; vertical-align:middle; font-size:12px; }
+                        .report-item-injury td.field-key { width:30%; background:#fef2f2; color:#991b1b; font-weight:800; font-size:11.5px; }
+                        .report-item-injury td.field-val { color:#1f2937; font-size:12px; }
                         .report-item-injury .report-photos {
-                            display:grid;
-                            grid-template-columns: repeat(auto-fit, minmax(58mm, 1fr));
-                            grid-auto-rows:minmax(0, 1fr);
-                            gap:6px;
+                            display:flex;
+                            flex-direction:row;
+                            flex-wrap:nowrap;
+                            gap:8px;
                             background:#fff7f7;
                             border-top:2px dashed #fecaca;
                             border-left:0;
-                            padding:8px;
-                            flex:0 0 86mm;
-                            margin-top:auto;
-                            height:86mm;
-                            max-height:86mm;
-                            min-height:72mm;
+                            padding:6px;
+                            flex:0 0 auto;
+                            min-height:0;
+                            justify-content:center;
+                            align-items:center;
                             box-sizing:border-box;
                             overflow:hidden;
                             page-break-before: avoid !important;
@@ -8927,12 +8926,13 @@ window.YMCO_showSplash = function(){
                             page-break-inside: avoid !important;
                             break-inside: avoid-page !important;
                         }
-                        .report-item-injury .report-photo { margin:0; max-width:100%; height:100%; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; overflow:hidden; page-break-inside: avoid !important; break-inside: avoid-page !important; }
-                        .report-item-injury .report-photo img { width:100%; height:auto; max-width:100%; max-height:calc(100% - 16px); min-height:0; object-fit:contain; border:2px solid #991b1b; border-radius:6px; padding:3px; background:#fff; box-shadow:none; box-sizing:border-box; flex:1 1 auto; }
-                        .report-item-injury .report-photo figcaption { margin-top:3px; font-size:9.5px; line-height:1.1; font-weight:900; color:#991b1b; letter-spacing:0.2px; text-align:center; flex:0 0 auto; }
-                        .report-item-injury .report-photos-injury { grid-template-columns: repeat(2, 1fr) !important; }
-                        .report-item-injury .report-photo-empty { background:#fff; border:2px dashed #fecaca; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60mm; }
+                        .report-item-injury .report-photo { margin:0; width:auto; height:auto; flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; overflow:hidden; page-break-inside: avoid !important; break-inside: avoid-page !important; }
+                        .report-item-injury .report-photo img { width:78mm; height:95mm; max-width:78mm; max-height:95mm; object-fit:contain; border:2px solid #991b1b; border-radius:6px; padding:3px; background:#fff; box-shadow:none; box-sizing:border-box; display:block; }
+                        .report-item-injury .report-photo figcaption { margin-top:4px; font-size:10px; line-height:1.15; font-weight:900; color:#991b1b; letter-spacing:0.2px; text-align:center; flex:0 0 auto; }
+                        .report-item-injury .report-photos-injury { }
+                        .report-item-injury .report-photo-empty { background:#fff; border:2px dashed #fecaca; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; width:78mm; height:95mm; box-sizing:border-box; }
                         .report-item-injury .report-photo-empty .report-photo-placeholder { font-size:10px; color:#94a3b8; font-weight:600; padding:6px; text-align:center; }
+
                         #printRunningHeader { display: none !important; visibility:hidden !important; height:0 !important; overflow:hidden !important; }
                         @media print {
                             body { font-feature-settings: "kern","liga"; -webkit-font-smoothing: antialiased; }
