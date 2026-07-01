@@ -8894,20 +8894,18 @@ window.YMCO_showSplash = function(){
                         }
                         .report-item-injury .report-item-header .report-name { color:#991b1b; font-size:13px; line-height:1.25; font-weight:900; }
                         .report-item-injury .report-item-header .report-date { color:#7f1d1d; font-size:11px; background:#fff; padding:2px 8px; border-radius:12px; border:1px solid #fecaca; font-weight:700; }
-                        .report-item-injury table { width:100%; height:auto; font-size:11px; line-height:1.35; border-collapse:separate; border-spacing:0; }
-                        .report-item-injury td { padding:5px 10px; line-height:1.35; vertical-align:middle; font-size:11px; border-bottom:1px solid #fee2e2; }
-                        .report-item-injury tr:last-child td { border-bottom:0; }
-                        .report-item-injury td.field-key { width:32%; background:linear-gradient(90deg,#fef2f2 0%,#fff5f5 100%); color:#991b1b; font-weight:800; font-size:10.5px; letter-spacing:.2px; text-transform:uppercase; border-right:2px solid #fecaca; }
-                        .report-item-injury td.field-val { color:#1f2937; font-size:11px; background:#fff; }
-                        .report-item-injury tr:nth-child(even) td.field-val { background:#fffafa; }
+                        .report-item-injury table { width:100%; height:auto; font-size:10.5px; line-height:1.3; }
+                        .report-item-injury td { padding:3px 8px; line-height:1.3; vertical-align:middle; font-size:10.5px; }
+                        .report-item-injury td.field-key { width:30%; background:#fef2f2; color:#991b1b; font-weight:800; font-size:10px; }
+                        .report-item-injury td.field-val { color:#1f2937; font-size:10.5px; }
                         .report-item-injury .report-photos {
                             display:flex;
                             flex-direction:row;
                             flex-wrap:nowrap;
-                            gap:10px;
-                            background:linear-gradient(180deg,#fff7f7 0%,#ffeaea 100%);
-                            border-top:2px solid #991b1b;
-                            padding:8px;
+                            gap:6px;
+                            background:#fff7f7;
+                            border-top:2px dashed #fecaca;
+                            padding:5px;
                             flex:0 0 auto;
                             justify-content:center;
                             align-items:flex-start;
@@ -8918,11 +8916,10 @@ window.YMCO_showSplash = function(){
                             break-inside: avoid !important;
                         }
                         .report-item-injury .report-photo { margin:0; flex:0 0 auto; display:flex; flex-direction:column; align-items:center; page-break-inside: avoid !important; break-inside: avoid !important; }
-                        .report-item-injury .report-photo img { width:82mm; height:100mm; max-width:82mm; max-height:100mm; object-fit:cover; object-position:center; border:2px solid #991b1b; border-radius:8px; padding:0; background:#fff; box-sizing:border-box; display:block; box-shadow:0 3px 10px rgba(153,27,27,0.25); }
-                        .report-item-injury .report-photo figcaption { margin-top:5px; font-size:9.5px; line-height:1.15; font-weight:900; color:#fff; background:#991b1b; padding:3px 10px; border-radius:10px; text-align:center; letter-spacing:.4px; text-transform:uppercase; }
-                        .report-item-injury .report-photo-empty { background:repeating-linear-gradient(45deg,#fff,#fff 8px,#fef2f2 8px,#fef2f2 16px); border:2px dashed #fecaca; border-radius:8px; display:flex; align-items:center; justify-content:center; width:82mm; height:100mm; box-sizing:border-box; }
-                        .report-item-injury .report-photo-empty .report-photo-placeholder { font-size:10px; color:#b91c1c; font-weight:700; padding:6px; text-align:center; }
-
+                        .report-item-injury .report-photo img { width:70mm; height:80mm; max-width:70mm; max-height:80mm; object-fit:contain; border:2px solid #991b1b; border-radius:6px; padding:2px; background:#fff; box-sizing:border-box; display:block; }
+                        .report-item-injury .report-photo figcaption { margin-top:3px; font-size:9px; line-height:1.1; font-weight:900; color:#991b1b; text-align:center; }
+                        .report-item-injury .report-photo-empty { background:#fff; border:2px dashed #fecaca; border-radius:6px; display:flex; align-items:center; justify-content:center; width:70mm; height:80mm; box-sizing:border-box; }
+                        .report-item-injury .report-photo-empty .report-photo-placeholder { font-size:9px; color:#94a3b8; font-weight:600; padding:6px; text-align:center; }
 
                         #printRunningHeader { display: none !important; visibility:hidden !important; height:0 !important; overflow:hidden !important; }
                         @media print {
@@ -10056,8 +10053,9 @@ window.YMCO_showSplash = function(){
                   <button class="btn-injury" data-id="${worker.id}"><i class="fas fa-exclamation-triangle"></i> Injury Report</button>
                   <button class="btn-edit-worker" data-id="${worker.id}"><i class="fas fa-edit"></i> Edit Worker</button>
                   <button class="btn-delete-worker" data-id="${worker.id}"><i class="fas fa-trash"></i> Delete Worker</button>
-                   <button class="btn-print-worker" data-id="${worker.id}"><i class="fas fa-print"></i> Print All Reports</button>
-                </div>
+                    <button class="btn-print-worker" data-id="${worker.id}"><i class="fas fa-print"></i> Print All Reports</button>
+                    <button class="btn-medical-qr" data-id="${worker.id}" style="background:linear-gradient(135deg,#0f4c75,#00b4d8);color:#fff;border:none;padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,180,216,.35);transition:transform .2s;"><i class="fas fa-qrcode"></i> Smart Medical QR</button>
+                 </div>
               </div>
             `;
                 card.querySelector('.btn-physical').addEventListener('click', () => openPhysicalExam(worker.id));
@@ -10066,6 +10064,8 @@ window.YMCO_showSplash = function(){
                 card.querySelector('.btn-edit-worker').addEventListener('click', () => openEditWorker(worker.id));
                 card.querySelector('.btn-delete-worker').addEventListener('click', () => deleteWorker(worker.id));
                 card.querySelector('.btn-print-worker').addEventListener('click', () => printWorkerFullReport(worker.id));
+                const qrBtn = card.querySelector('.btn-medical-qr');
+                if (qrBtn) qrBtn.addEventListener('click', () => openMedicalQRCard(worker.id));
                 card.querySelectorAll('details.reports-group').forEach(d => {
                     d.addEventListener('toggle', () => {
                         const key = d.getAttribute('data-group-key');
@@ -19253,6 +19253,127 @@ window.toggleInjuryPrintPreview = function(){
 })();
 </script>
 
+<!-- ============ SMART MEDICAL QR CARD MODAL ============ -->
+<style>
+  #medicalQrModal{position:fixed;inset:0;background:rgba(15,23,42,.65);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+  #medicalQrModal.open{display:flex;}
+  #medicalQrModal .mqr-wrap{background:#fff;border-radius:24px;box-shadow:0 30px 80px rgba(0,0,0,.35);max-width:440px;width:100%;overflow:hidden;animation:mqrIn .35s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes mqrIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+  #medicalQrModal .mqr-head{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;background:linear-gradient(135deg,#0f4c75,#00b4d8);color:#fff;}
+  #medicalQrModal .mqr-head h3{margin:0;font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  #medicalQrModal .mqr-close{background:rgba(255,255,255,.2);border:none;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px;}
+  #medicalQrModal .mqr-body{padding:22px;}
+  .med-qr-card{background:linear-gradient(160deg,#f0f9ff 0%,#e0f2fe 55%,#dbeafe 100%);border-radius:20px;padding:22px 20px;text-align:center;box-shadow:inset 0 0 0 1px rgba(15,76,117,.12);position:relative;overflow:hidden;}
+  .med-qr-card::before{content:"";position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:radial-gradient(circle,rgba(0,180,216,.25),transparent 70%);border-radius:50%;}
+  .med-qr-card::after{content:"";position:absolute;bottom:-50px;left:-30px;width:120px;height:120px;background:radial-gradient(circle,rgba(15,76,117,.18),transparent 70%);border-radius:50%;}
+  .med-qr-brand{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;color:#0f4c75;font-size:13px;letter-spacing:1.5px;margin-bottom:14px;}
+  .med-qr-brand i{color:#ef4444;}
+  .med-qr-name{position:relative;font-size:20px;font-weight:800;color:#0f172a;margin:4px 0;}
+  .med-qr-role{position:relative;font-size:13px;color:#0f4c75;font-weight:600;margin-bottom:4px;}
+  .med-qr-idline{position:relative;display:inline-block;background:rgba(15,76,117,.1);color:#0f4c75;font-weight:700;padding:5px 14px;border-radius:999px;font-size:12px;margin-bottom:16px;letter-spacing:.5px;}
+  .med-qr-box{position:relative;background:#fff;padding:14px;border-radius:16px;display:inline-block;box-shadow:0 6px 20px rgba(15,76,117,.15);}
+  .med-qr-box canvas,.med-qr-box img{display:block;}
+  .med-qr-hint{position:relative;margin-top:14px;font-size:11px;color:#475569;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .med-qr-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+  .med-qr-actions button{flex:1;min-width:110px;padding:10px 12px;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;color:#fff;transition:transform .2s,box-shadow .2s;}
+  .med-qr-actions button:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.15);}
+  .mqr-btn-print{background:linear-gradient(135deg,#0f4c75,#3282b8);}
+  .mqr-btn-pdf{background:linear-gradient(135deg,#ef4444,#dc2626);}
+  .mqr-btn-png{background:linear-gradient(135deg,#10b981,#059669);}
+</style>
+<div id="medicalQrModal" role="dialog" aria-modal="true" aria-labelledby="mqrTitle">
+  <div class="mqr-wrap">
+    <div class="mqr-head">
+      <h3 id="mqrTitle"><i class="fas fa-qrcode"></i> Smart Medical QR Card</h3>
+      <button class="mqr-close" onclick="closeMedicalQRCard()" aria-label="Close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="mqr-body">
+      <div id="medQrCardContent" class="med-qr-card">
+        <div class="med-qr-brand"><i class="fas fa-heartbeat"></i> MEDICAL ID CARD</div>
+        <div class="med-qr-name" id="mqrName">—</div>
+        <div class="med-qr-role" id="mqrRole">—</div>
+        <div class="med-qr-idline" id="mqrIdLine">ID: —</div>
+        <div class="med-qr-box"><div id="mqrCode"></div></div>
+        <div class="med-qr-hint"><i class="fas fa-mobile-alt"></i> Scan with any camera to view worker info</div>
+      </div>
+      <div class="med-qr-actions">
+        <button class="mqr-btn-print" onclick="printMedicalQRCard()"><i class="fas fa-print"></i> Print</button>
+        <button class="mqr-btn-pdf" onclick="downloadMedicalQRCardPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="mqr-btn-png" onclick="downloadMedicalQRCodePNG()"><i class="fas fa-download"></i> PNG</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  let currentMedQrWorker = null;
+  function findWorker(id){
+    try { if (Array.isArray(window.workers)) return window.workers.find(w => String(w.id) === String(id)); } catch(e){}
+    try { const raw = localStorage.getItem('constructionWorkers'); if (raw){ const arr = JSON.parse(raw); return arr.find(w => String(w.id) === String(id)); } } catch(e){}
+    return null;
+  }
+  window.openMedicalQRCard = function(workerId){
+    const w = findWorker(workerId);
+    if (!w){ alert('Worker not found'); return; }
+    currentMedQrWorker = w;
+    document.getElementById('mqrName').textContent = w.name || '—';
+    document.getElementById('mqrRole').textContent = w.role || w.jobRole || '—';
+    document.getElementById('mqrIdLine').textContent = 'ID: ' + (w.id || '—');
+    const payload =
+      'BEGIN:MEDCARD\n' +
+      'NAME: ' + (w.name || '') + '\n' +
+      'ID: ' + (w.id || '') + '\n' +
+      'JOB: ' + (w.role || w.jobRole || '') + '\n' +
+      (w.company ? 'COMPANY: ' + w.company + '\n' : '') +
+      (w.phone ? 'PHONE: ' + w.phone + '\n' : '') +
+      (w.nationality ? 'NATIONALITY: ' + w.nationality + '\n' : '') +
+      (w.status ? 'STATUS: ' + w.status + '\n' : '') +
+      'END:MEDCARD';
+    const box = document.getElementById('mqrCode');
+    box.innerHTML = '';
+    if (typeof QRCode !== 'undefined'){
+      new QRCode(box, { text: payload, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+    } else {
+      box.textContent = 'QR library not loaded';
+    }
+    document.getElementById('medicalQrModal').classList.add('open');
+  };
+  window.closeMedicalQRCard = function(){
+    document.getElementById('medicalQrModal').classList.remove('open');
+  };
+  document.getElementById('medicalQrModal').addEventListener('click', function(e){
+    if (e.target === this) closeMedicalQRCard();
+  });
+  window.printMedicalQRCard = function(){
+    const node = document.getElementById('medQrCardContent');
+    if (!node) return;
+    const html = '<html><head><title>Medical QR Card</title>' +
+      '<style>body{margin:0;padding:30px;font-family:Inter,Arial,sans-serif;display:flex;justify-content:center;}' +
+      document.querySelector('style').innerText +
+      '</style></head><body>' + node.outerHTML + '</body></html>';
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    setTimeout(()=>{ win.focus(); win.print(); }, 400);
+  };
+  window.downloadMedicalQRCardPDF = function(){
+    const node = document.getElementById('medQrCardContent');
+    if (!node || typeof html2pdf === 'undefined'){ alert('PDF library not available'); return; }
+    const name = (currentMedQrWorker && currentMedQrWorker.name) || 'worker';
+    html2pdf().set({ margin:10, filename:'Medical_QR_'+name+'.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'mm',format:'a5',orientation:'portrait'} }).from(node).save();
+  };
+  window.downloadMedicalQRCodePNG = function(){
+    const img = document.querySelector('#mqrCode img') || document.querySelector('#mqrCode canvas');
+    if (!img){ alert('QR not ready'); return; }
+    const url = img.tagName === 'CANVAS' ? img.toDataURL('image/png') : img.src;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Medical_QR_' + ((currentMedQrWorker && currentMedQrWorker.id) || 'worker') + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+})();
+</script>
 </body>
 </html>
+
 
